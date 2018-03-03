@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>501112a0-ccf2-4c78-bf33-61eefdfd153f</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>GTMPVoiceShared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Model\Enums.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\IVoicePaketModel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\TSVector.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketChannel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketConfig.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketConnect.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketSetup.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketMute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketTalking.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketUpdate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VoicePaketProcessor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)VoicePaketSerializer.cs" />
+  </ItemGroup>
+</Project>

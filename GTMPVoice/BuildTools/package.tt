@@ -1,0 +1,13 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Diagnostics" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.IO" #>
+<#@ output extension=".ini" #>
+Name=GT-MP Teamspeak Voice Plugin
+Type=Plugin
+Author=c0nnex
+Version=<#= FileVersionInfo.GetVersionInfo(Path.Combine(Path.GetDirectoryName(Host.TemplateFile),"../../PluginRelease/Current/plugins/GTMPVoice_win64.dll")).ProductVersion #>
+Platforms=win64
+Description="GT-MP Teamspeak Voice Plugin (https://gt-mp.net/)"
+Api=22
