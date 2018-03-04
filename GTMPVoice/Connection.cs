@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
@@ -58,7 +59,10 @@ namespace GTMPVoice
             if (c != null)
             {
                 c.UpdateClientList();
+                var ct = _MutedClients.Count;
                 c.AllClients.ForEach(cl => ConditionalMute(cl));
+                if (_MutedClients.Count != ct)
+                    DoMuteActions();
             }
         }
 
@@ -326,6 +330,7 @@ namespace GTMPVoice
             }
         }
 
+        [MethodImpl(MethodImplOptions.Synchronized)]
         internal void DoMuteActions()
         {
             var clientCurrentChannel = LocalClient.CurrentChannel;
