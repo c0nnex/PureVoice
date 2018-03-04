@@ -79,6 +79,11 @@ namespace GTMPVoice.Server
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             Logger.Debug("Connected Clients: {0}/{1}",_server.GetPeersCount(ConnectionState.Connected), _server.PeersCount);
+            /*
+            foreach (var peer in _connectedPeers.Values)
+            {
+                Logger.Debug($"{peer} {peer.Ping} => {peer.PacketsCountInReliableOrderedQueue}");
+            }*/
         }
 
         public void Stop()
@@ -107,7 +112,7 @@ namespace GTMPVoice.Server
             }
         }
 
-        internal void SendTo(NetPeer peer, INetSerializable data)
+        internal void SendTo(NetPeer peer, INetSerializable data, DeliveryMethod deliveryMethod = DeliveryMethod.ReliableOrdered)
         {
             if (_server != null && _server.IsRunning && _server.PeersCount > 0)
             {
@@ -146,7 +151,7 @@ namespace GTMPVoice.Server
                     }
                     p.Data = list.ToArray();
                     //Logger.Debug("SendUpdate {0} {1} Records => {2}",targetId, data.Count(),p.Data.Length);
-                    SendTo(peer, p);
+                    SendTo(peer, p, DeliveryMethod.Sequenced);
                 }
             }
         }
@@ -164,7 +169,7 @@ namespace GTMPVoice.Server
                         Position = data.Position,
                         PositionIsRelative = data.IsRelative,
                         VolumeModifier = data.VolumeModifier,
-                    });
+                    },DeliveryMethod.Sequenced);
                 }
             }
         }
@@ -182,7 +187,7 @@ namespace GTMPVoice.Server
                         Position = position,
                         PositionIsRelative = positionIsRelative,
                         VolumeModifier = volumeModifier,
-                    });
+                    }, DeliveryMethod.Sequenced);
                 }
             }
         }
@@ -263,7 +268,7 @@ namespace GTMPVoice.Server
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, "OnNetworkReceive");
+                    Logger.Warn(ex, "OnNetworkReceive {0}",peer.ToString());
                 }
             }
         }
