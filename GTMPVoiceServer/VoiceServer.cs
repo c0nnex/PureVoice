@@ -78,16 +78,24 @@ namespace GTMPVoice.Server
 
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            Logger.Debug("Connected Clients: {0}/{1}",_server.GetPeersCount(ConnectionState.Connected), _server.PeersCount);
+            Logger.Debug("Connected Clients: {0}/{1}/{2}",_server.GetPeersCount(ConnectionState.Connected), _server.PeersCount,_connectedPeers.Count);
 
-            foreach (var peer in _connectedPeers.Values.ToList())
+            foreach (var kvp in _connectedPeers.ToList())
             {
+                var peer = kvp.Value;
+                if (peer.ConnectionState != ConnectionState.Connected)
+                {
+                    VoiceClientDisconnected?.Invoke(kvp.Key);
+                    _connectedPeers.TryRemove(kvp.Key, out var unused);
+                    continue;
+                }
+
                 if (peer.PacketsCountInReliableOrderedQueue > _maxOutQueueSize)
                 {
-                    Logger.Debug($"{peer.EndPoint} {peer.Ping} => {peer.PacketsCountInReliableOrderedQueue} queuesize exceeeded disconnecting");
-                    _server.DisconnectPeerForce(peer);
+                    Logger.Debug($"{peer.EndPoint} {peer.Ping} => {peer.PacketsCountInReliableOrderedQueue} queuesize exceeded disconnecting");
                     VoiceClientDisconnected?.Invoke(peer.ConnectId);
                     _connectedPeers.TryRemove(peer.ConnectId, out var unused);
+                    _server.DisconnectPeerForce(peer);
                 }
             }
         }
