@@ -34,7 +34,7 @@ namespace GTMPVoice.Server
         private readonly ulong _ingameChannel;
         private readonly string _ingameChannelPassword;
         private readonly bool _enableLipSync;
-        private readonly VoiceIdentificationMethod _voiceIdentificationMethod = VoiceIdentificationMethod.Nickname;
+        private readonly int _maxOutQueueSize = 10;
 
         private ConcurrentDictionary<long, NetPeer> _connectedPeers = new ConcurrentDictionary<long, NetPeer>();
 
@@ -79,11 +79,17 @@ namespace GTMPVoice.Server
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             Logger.Debug("Connected Clients: {0}/{1}",_server.GetPeersCount(ConnectionState.Connected), _server.PeersCount);
-            /*
-            foreach (var peer in _connectedPeers.Values)
+
+            foreach (var peer in _connectedPeers.Values.ToList())
             {
-                Logger.Debug($"{peer} {peer.Ping} => {peer.PacketsCountInReliableOrderedQueue}");
-            }*/
+                if (peer.PacketsCountInReliableOrderedQueue > _maxOutQueueSize)
+                {
+                    Logger.Debug($"{peer.EndPoint} {peer.Ping} => {peer.PacketsCountInReliableOrderedQueue} queuesize exceeeded disconnecting");
+                    _server.DisconnectPeerForce(peer);
+                    VoiceClientDisconnected?.Invoke(peer.ConnectId);
+                    _connectedPeers.TryRemove(peer.ConnectId, out var unused);
+                }
+            }
         }
 
         public void Stop()
@@ -250,7 +256,7 @@ namespace GTMPVoice.Server
 
         public void OnNetworkError(NetEndPoint endPoint, int socketErrorCode)
         {
-            Logger.Debug("NetworkError {0} : {1}", endPoint, socketErrorCode);
+            Logger.Warn("NetworkError {0} : {1}", endPoint, socketErrorCode);
         }
 
         public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
@@ -266,9 +272,13 @@ namespace GTMPVoice.Server
                 {
                     _netPacketProcessor.ReadAllPackets(reader, peer);
                 }
+                catch (ParseException ex)
+                {
+                    Logger.Warn("OnNetworkReceive {0}: {1} Data {2}", peer.EndPoint.ToString(),ex.Message,reader.Data.HexDump());
+                }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, "OnNetworkReceive {0}",peer.ToString());
+                    Logger.Warn(ex, "OnNetworkReceive {0}",peer.EndPoint.ToString());
                 }
             }
         }

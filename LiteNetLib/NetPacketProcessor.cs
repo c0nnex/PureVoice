@@ -37,7 +37,7 @@ namespace LiteNetLib.Utils
             SubscribeDelegate action;
             if (!_callbacks.TryGetValue(hash, out action))
             {
-                throw new ParseException("Undefined packet in NetDataReader");
+                throw new ParseException($"Undefined packet {hash:X} in NetDataReader");
             }
             return action;
         }

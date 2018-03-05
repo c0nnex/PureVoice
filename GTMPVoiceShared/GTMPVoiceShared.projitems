@@ -9,6 +9,7 @@
     <Import_RootNamespace>GTMPVoiceShared</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\Enums.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\IVoicePaketModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\TSVector.cs" />
