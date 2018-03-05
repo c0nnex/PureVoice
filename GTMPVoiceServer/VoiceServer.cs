@@ -151,7 +151,7 @@ namespace GTMPVoice.Server
                     }
                     p.Data = list.ToArray();
                     //Logger.Debug("SendUpdate {0} {1} Records => {2}",targetId, data.Count(),p.Data.Length);
-                    SendTo(peer, p, DeliveryMethod.Sequenced);
+                    SendTo(peer, p, DeliveryMethod.ReliableOrdered);
                 }
             }
         }
@@ -169,7 +169,7 @@ namespace GTMPVoice.Server
                         Position = data.Position,
                         PositionIsRelative = data.IsRelative,
                         VolumeModifier = data.VolumeModifier,
-                    },DeliveryMethod.Sequenced);
+                    },DeliveryMethod.ReliableOrdered);
                 }
             }
         }
