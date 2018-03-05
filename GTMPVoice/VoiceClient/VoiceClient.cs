@@ -27,6 +27,7 @@ namespace GTMPVoice.VoiceClient
         private bool _needConnection = false;
         public event EventHandler<VoiceClient> OnDisconnected;
         private bool _GotWarning = false;
+        private static bool _ShutDown = false;
 
         public bool IsConnected
         {
@@ -101,10 +102,12 @@ namespace GTMPVoice.VoiceClient
             ServerListener = new NetManager(evL) { UnconnectedMessagesEnabled = true,UnsyncedEvents = true };
             ServerListener.Start(4239);
             GTMPVoicePlugin.Log("voiceClient waiting for Connectioninfo...");
+            _ShutDown = false;
         }
 
         public void Shutdown()
         {
+            _ShutDown = true;
             GTMPVoicePlugin.Log("Shutting down voiceClient");
             if (_timer.Enabled)
                 _timer.Stop();
@@ -222,6 +225,8 @@ namespace GTMPVoice.VoiceClient
         {
             try
             {
+                if (_ShutDown)
+                    return;
                 if ((remoteEndPoint.Host != "127.0.0.1") && (remoteEndPoint.Host != "[::1]"))
                 {
                     GTMPVoicePlugin.Log("Refused from {0}", remoteEndPoint);
