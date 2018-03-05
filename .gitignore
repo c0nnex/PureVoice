@@ -291,3 +291,4 @@ __pycache__/
 /GTMPVoice/Properties/AssemblyInfoVersion.cs
 *.ts3_plugin
 /PluginRelease/ziprelease.ps1
+/GTMPVoiceServer/after_release_build.cmd

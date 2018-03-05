@@ -50,4 +50,9 @@
   <Import Project="..\LiteNetLib\LiteNetLib.projitems" Label="Shared" />
   <Import Project="..\GTMPVoiceShared\GTMPVoiceShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>if exist "$(ProjectDir)after_$(ConfigurationName)_build.cmd" (
+@"$(ProjectDir)after_$(ConfigurationName)_build.cmd" "$(TargetPath)"
+)</PostBuildEvent>
+  </PropertyGroup>
 </Project>
