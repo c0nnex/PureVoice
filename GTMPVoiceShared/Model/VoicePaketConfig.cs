@@ -5,8 +5,6 @@ namespace GTMPVoice.VoiceClient.Model
 {
     class VoicePaketConfig : INetSerializable
     {
-        public string Hello { get; set; } = "INVALID";
-        public int VoiceVersion { get; set; } = -1;
         public string ServerIP { get; set; }
         public int ServerPort { get; set; }
         public string ServerSecret { get; set; }
@@ -18,8 +16,6 @@ namespace GTMPVoice.VoiceClient.Model
         {
             try
             {
-                Hello = reader.GetString();
-                VoiceVersion = reader.GetInt();
                 ServerIP = reader.GetString();
                 ServerPort = reader.GetInt();
                 ServerSecret = reader.GetString();

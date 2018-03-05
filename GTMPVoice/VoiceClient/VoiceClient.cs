@@ -16,6 +16,8 @@ namespace GTMPVoice.VoiceClient
     public class VoiceClient : INetLogger
     {
         NetManager Client = null;
+        NetManager ServerListener = null;
+
         EventBasedNetListener clientListener = new EventBasedNetListener();
         private readonly NetPacketProcessor _netPacketProcessor = new NetPacketProcessor();
         private VoicePaketConfig _configuration;
@@ -30,6 +32,8 @@ namespace GTMPVoice.VoiceClient
         {
             get
             {
+                if (Client == null)
+                    return false;
                 if (!Client.IsRunning)
                     return false;
                 var p = Client?.GetFirstPeer();
@@ -75,25 +79,27 @@ namespace GTMPVoice.VoiceClient
             clientListener.PeerConnectedEvent += (p) => GTMPVoicePlugin.Log("PeerConnectedEvent {0}", p);
             clientListener.PeerDisconnectedEvent += ClientListener_PeerDisconnectedEvent;
             clientListener.NetworkErrorEvent += (p, e) => GTMPVoicePlugin.Log("NetworkErrorEvent {0} => {1}", p, e);
-            clientListener.NetworkReceiveUnconnectedEvent += ClientListener_NetworkReceiveUnconnectedEvent;
             clientListener.NetworkLatencyUpdateEvent += ClientListener_NetworkLatencyUpdateEvent;
-            Client = new NetManager(clientListener, 1);
-            Client.UnsyncedEvents = true;
-            Client.UnconnectedMessagesEnabled = true;
+            
             _timer = new System.Timers.Timer();
             _timer.Interval = 30000;
             _timer.Elapsed += (s, e) =>
             {
                 if (_needConnection)
                 {
-                    var Connection = Client.GetFirstPeer();
+                    var Connection = Client?.GetFirstPeer();
                     if ((Connection == null) || (Connection.ConnectionState != ConnectionState.Connected))
                         StartServerConection();
                 }
             };
-            Client.Start(4239);
+            
             if (!_timer.Enabled)
                 _timer.Start();
+
+            var evL = new EventBasedNetListener();
+            evL.NetworkReceiveUnconnectedEvent += (ep, reader, messageType) => ServerListener_NetworkReceiveUnconnectedEvent(ep, reader, messageType);
+            ServerListener = new NetManager(evL) { UnconnectedMessagesEnabled = true,UnsyncedEvents = true };
+            ServerListener.Start(4239);
             GTMPVoicePlugin.Log("voiceClient waiting for Connectioninfo...");
         }
 
@@ -102,7 +108,32 @@ namespace GTMPVoice.VoiceClient
             GTMPVoicePlugin.Log("Shutting down voiceClient");
             if (_timer.Enabled)
                 _timer.Stop();
-            Client.Stop();
+            Client?.Stop();
+            ServerListener?.Stop();
+        }
+
+        private void CreateClientConnection()
+        {
+            if (Client != null)
+            {
+                Client.DisconnectAll();
+                Client.Stop();
+                Client = null;
+            }
+            Client = new NetManager(clientListener, 1);
+            Client.UnsyncedEvents = true;
+            Client.UnconnectedMessagesEnabled = false;
+            Client.Start();
+        }
+
+        public void Disconnect()
+        {
+            if (Client != null)
+            {
+                Client.DisconnectAll();
+                Client.Stop();
+                Client = null;
+            }
         }
 
         private void ClientListener_NetworkLatencyUpdateEvent(NetPeer peer, int latency)
@@ -112,16 +143,13 @@ namespace GTMPVoice.VoiceClient
                 if (_needConnection && (DateTime.Now - _lastGTMPPing > TimeSpan.FromSeconds(10)))
                 {
                     _needConnection = false;
-                    var Connection = Client.GetFirstPeer();
-                    if (Connection != null)
-                        Client.DisconnectPeerForce(Connection);
-                    Connection = null;
                     var con = GTMPVoicePlugin.GetConnection(_connectionInfo.ServerGUID);
                     if (con != null)
                     {
                         con.DisconnectVoiceServer();
                     }
                     OnDisconnected?.Invoke(this, this);
+                    Disconnect();
                 }
             }
             catch (Exception ex)
@@ -182,6 +210,7 @@ namespace GTMPVoice.VoiceClient
                     con.DisconnectVoiceServer();
                 }
                 OnDisconnected?.Invoke(this, this);
+                Disconnect();
             }
             catch (Exception ex)
             {
@@ -189,49 +218,68 @@ namespace GTMPVoice.VoiceClient
             }
         }
 
-        private void ClientListener_NetworkReceiveUnconnectedEvent(NetEndPoint remoteEndPoint, NetDataReader reader, UnconnectedMessageType messageType)
+        private void ServerListener_NetworkReceiveUnconnectedEvent(NetEndPoint remoteEndPoint, NetDataReader reader, UnconnectedMessageType messageType)
         {
-            
-            if ((remoteEndPoint.Host != "127.0.0.1") && (remoteEndPoint.Host != "[::1]"))
+            try
             {
-                GTMPVoicePlugin.Log("Refused from {0}", remoteEndPoint);
-                return;
-            }
-            if (messageType != UnconnectedMessageType.BasicMessage)
-            {
-                GTMPVoicePlugin.Log("Refused {1} from {0}", remoteEndPoint, messageType);
-                return;
-            }
-
-            _configuration = new VoicePaketConfig();
-            _configuration.Deserialize(reader);
-            if (_configuration.Hello != "GTMPVOICE" || _configuration.VoiceVersion != 1)
-            {
-                GTMPVoicePlugin.Log("Invalid configuration from {0}", remoteEndPoint);
-                return;
-            }
-
-            _lastGTMPPing = DateTime.Now;
-            var Connection = Client.GetFirstPeer();
-            if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
-                return;
-            GTMPVoicePlugin.Log("Accept Configuration from {0}", remoteEndPoint);
-            
-            if (_configuration.ClientVersionRequired > GTMPVoicePlugin.PluginVersion)
-            {
-                if (!_GotWarning)
+                if ((remoteEndPoint.Host != "127.0.0.1") && (remoteEndPoint.Host != "[::1]"))
                 {
-                    _GotWarning = true;
-                    MessageBox.Show($"{GTMPVoicePlugin.Name} veraltet. Version {_configuration.ClientVersionRequired} wird benötigt. Bitte aktualisieren.", "GT-MP Voice Plugin Fehler");
+                    GTMPVoicePlugin.Log("Refused from {0}", remoteEndPoint);
+                    return;
                 }
-                return;
+                if (messageType != UnconnectedMessageType.BasicMessage)
+                {
+                    GTMPVoicePlugin.Log("Refused {1} from {0}", remoteEndPoint, messageType);
+                    return;
+                }
+
+                var hello = reader.GetString();
+                var voiceVersion = reader.GetInt();
+                if (voiceVersion != 1)
+                {
+                    GTMPVoicePlugin.Log("Refused v {1} from {0}", remoteEndPoint, voiceVersion);
+                    return;
+                }
+                if (hello == "GTMPVOICECOMMAND")
+                {
+                    GTMPVoicePlugin.Log("Command from {0}", remoteEndPoint);
+                    return;
+                }
+                if (hello != "GTMPVOICE")
+                {
+                    GTMPVoicePlugin.Log("Invalid configuration from {0}", remoteEndPoint);
+                    return;
+                }
+                _configuration = new VoicePaketConfig();
+                _configuration.Deserialize(reader);
+
+                _lastGTMPPing = DateTime.Now;
+
+                GTMPVoicePlugin.Log("Accept Configuration from {0}", remoteEndPoint);
+                if (IsConnected)
+                {
+                    GTMPVoicePlugin.Log("Already connected");
+                    return;
+                }
+
+                if (_configuration.ClientVersionRequired > GTMPVoicePlugin.PluginVersion)
+                {
+                    if (!_GotWarning)
+                    {
+                        _GotWarning = true;
+                        MessageBox.Show($"{GTMPVoicePlugin.Name} veraltet. Version {_configuration.ClientVersionRequired} wird benötigt. Bitte aktualisieren.", "GT-MP Voice Plugin Fehler");
+                    }
+                    return;
+                }
+                _lastGTMPPing = DateTime.Now;
+                GTMPVoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
+                _needConnection = true;
+                StartServerConection();
             }
-            _lastGTMPPing = DateTime.Now;
-            if ((Connection != null) && (Connection.ConnectionState != ConnectionState.Disconnected))
-                return;
-            GTMPVoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
-            _needConnection = true;
-            StartServerConection();
+            catch (Exception ex)
+            {
+                GTMPVoicePlugin.Log("Invalid Serverpaket from {0}: {1}", remoteEndPoint, ex.Message);
+            }
         }
 
         private void StartServerConection()
@@ -239,12 +287,7 @@ namespace GTMPVoice.VoiceClient
             var cp = new VoicePaketConnectServer() { Secret = _configuration.ServerSecret, Version = Assembly.GetExecutingAssembly().GetName().Version, ClientGUID = _configuration.ClientGUID };
             var nw = new NetDataWriter();
             cp.Serialize(nw);
-            var oldPeer = Client.GetFirstPeer();
-            if (oldPeer != null)
-            {
-                Client.DisconnectPeerForce(oldPeer);
-                Thread.Sleep(200);
-            }
+            CreateClientConnection();
             Client.Connect(_configuration.ServerIP, _configuration.ServerPort, nw);
         }
 
@@ -265,13 +308,13 @@ namespace GTMPVoice.VoiceClient
                     if (!GTMPVoicePlugin_ConnectionEstablished(con))
                     {
                         GTMPVoicePlugin.Log("Disconnecting Peer (TS Server not ready)");
-                        Client.DisconnectPeer(peer);
+                        Disconnect();
                     }
                 }
                 else
                 {
                     GTMPVoicePlugin.Log("Disconnecting Peer (TS Server not connected)");
-                    Client.DisconnectPeer(peer);
+                    Disconnect();
                 }
             }
             catch (Exception ex)
@@ -427,7 +470,7 @@ namespace GTMPVoice.VoiceClient
 
         public void WriteNet(ConsoleColor color, string str, params object[] args)
         {
-            Debug.WriteLine(String.Format(str, args));
+            GTMPVoicePlugin.Log(str, args);
         }
     }
 }
