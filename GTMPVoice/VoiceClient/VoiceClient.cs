@@ -468,7 +468,9 @@ namespace GTMPVoice.VoiceClient
 
         public void SendTalkStatusChanged(bool isTalking)
         {
-            var Connection = Client.GetFirstPeer();
+            if (!IsConnected)
+                return;
+            var Connection = Client?.GetFirstPeer();
             if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
                 _netPacketProcessor.Send(Connection, new VoicePaketTalking(isTalking), DeliveryMethod.ReliableOrdered);
         }
