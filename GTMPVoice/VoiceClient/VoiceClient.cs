@@ -28,6 +28,7 @@ namespace GTMPVoice.VoiceClient
         public event EventHandler<VoiceClient> OnDisconnected;
         private bool _GotWarning = false;
         private static bool _ShutDown = false;
+        private SmartLock smartLock = new SmartLock("VoiceClient");
 
         public bool IsConnected
         {
@@ -83,15 +84,32 @@ namespace GTMPVoice.VoiceClient
             clientListener.NetworkLatencyUpdateEvent += ClientListener_NetworkLatencyUpdateEvent;
             
             _timer = new System.Timers.Timer();
-            _timer.Interval = 30000;
+            _timer.Interval = 100;
             _timer.Elapsed += (s, e) =>
             {
                 if (_needConnection)
                 {
-                    var Connection = Client?.GetFirstPeer();
-                    if ((Connection == null) || (Connection.ConnectionState != ConnectionState.Connected))
-                        StartServerConection();
+                    if (DateTime.Now - _lastGTMPPing > TimeSpan.FromSeconds(10))
+                    {
+                        _needConnection = false;
+                        var con = GTMPVoicePlugin.GetConnection(_connectionInfo.ServerGUID);
+                        if (con != null)
+                        {
+                            con.DisconnectVoiceServer();
+                        }
+                        OnDisconnected?.Invoke(this, this);
+                        Disconnect();
+                        return;
+                    }
+                    
+                    if (!IsConnected)
+                    {
+                        StartServerConnection();
+                        return;
+                    }
                 }
+                if (IsConnected)
+                    Client?.PollEvents();
             };
             
             if (!_timer.Enabled)
@@ -117,26 +135,26 @@ namespace GTMPVoice.VoiceClient
 
         private void CreateClientConnection()
         {
-            if (Client != null)
-            {
-                Client.DisconnectAll();
-                Client.Stop();
-                Client = null;
-            }
+            Disconnect();
             Client = new NetManager(clientListener, 1);
-            Client.UnsyncedEvents = true;
+            Client.UnsyncedEvents = false;
             Client.UnconnectedMessagesEnabled = false;
             Client.Start();
         }
 
         public void Disconnect()
         {
-            if (Client != null)
-            {
-                Client.DisconnectAll();
-                Client.Stop();
-                Client = null;
-            }
+            smartLock.Lock(() =>
+           {
+               if (Client != null)
+               {
+                   var cl = Client;
+                   Client = null;
+                   cl?.DisconnectAll();
+                   cl?.Stop();
+                   cl = null;
+               }
+           });
         }
 
         private void ClientListener_NetworkLatencyUpdateEvent(NetPeer peer, int latency)
@@ -279,7 +297,7 @@ namespace GTMPVoice.VoiceClient
                 _lastGTMPPing = DateTime.Now;
                 GTMPVoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
                 _needConnection = true;
-                StartServerConection();
+                StartServerConnection();
             }
             catch (Exception ex)
             {
@@ -287,7 +305,7 @@ namespace GTMPVoice.VoiceClient
             }
         }
 
-        private void StartServerConection()
+        private void StartServerConnection()
         {
             var cp = new VoicePaketConnectServer() { Secret = _configuration.ServerSecret, Version = Assembly.GetExecutingAssembly().GetName().Version, ClientGUID = _configuration.ClientGUID };
             var nw = new NetDataWriter();

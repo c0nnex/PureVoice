@@ -308,7 +308,6 @@ namespace LiteNetLib
                 if (force)
                 {
                     _peers.Remove(peer);
-                    return;
                 }
             }
             var netEvent = CreateEvent(NetEventType.Disconnect);

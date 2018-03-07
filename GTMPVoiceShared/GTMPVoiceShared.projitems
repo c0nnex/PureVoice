@@ -21,6 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketMute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketTalking.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketUpdate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SmartLock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)VoicePaketProcessor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)VoicePaketSerializer.cs" />
   </ItemGroup>

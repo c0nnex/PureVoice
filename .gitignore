@@ -289,6 +289,6 @@ __pycache__/
 /GTMPVoice/BuildTools/package.ini
 /GTMPVoice/BuildTools/ziprelease.ps1
 /GTMPVoice/Properties/AssemblyInfoVersion.cs
-*.ts3_plugin
 /PluginRelease/ziprelease.ps1
 /GTMPVoiceServer/after_release_build.cmd
+/PluginRelease/Archive
