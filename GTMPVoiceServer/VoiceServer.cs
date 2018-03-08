@@ -283,10 +283,12 @@ namespace GTMPVoice.Server
                 catch (ParseException ex)
                 {
                     Logger.Warn("OnNetworkReceive {0}: {1} Data {2}", peer.EndPoint.ToString(),ex.Message,reader.Data.HexDump());
+                    peer.Disconnect();
                 }
                 catch (Exception ex)
                 {
                     Logger.Warn(ex, "OnNetworkReceive {0}",peer.EndPoint.ToString());
+                    peer.Disconnect();
                 }
             }
         }
