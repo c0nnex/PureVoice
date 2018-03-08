@@ -29,7 +29,7 @@ namespace GTMPVoice
 
         private ulong GetClientChannel()
         {
-            ulong cId = 1;
+            ulong cId = ChannelID;
             Check(Functions.getChannelOfClient(Connection.ID, ID, out cId));
             return cId;
         }
@@ -97,13 +97,13 @@ namespace GTMPVoice
                 {
                     if (LastChannel == 1)
                         LastChannel = oldChannel;
-                    Connection.DoMuteList(Channel?.AllClients);
+                    Connection.GetChannel(newChannel).MuteAll();
                     Connection.RegisterMutedClients(Channel?.AllClients);
                 }
                 else
                 {
                     LastChannel = newChannel;
-                    Connection.UnmuteAll();
+                    Connection.GetChannel(newChannel).UnmuteAll(true);
                 }
                 return;
             }
@@ -113,11 +113,14 @@ namespace GTMPVoice
                 {
                     Connection.DoMute(ID);
                 }
-                else // someone leaves the ingame channel. Reset 3D position and volume
+                else // someone leaves the ingame channel. Reset 3D position and volume if i am not ingame
                 {
-                    Connection.ExecuteMute(ID, false);
-                    Functions.channelset3DAttributes(Connection.ID, ID, new TSVector());
-                    Functions.setClientVolumeModifier(Connection.ID, ID, 0);
+                    if (Connection.LocalClient.ChannelID != Connection.IngameChannel)
+                    {
+                        Connection.ExecuteMute(ID, false);
+                        Check(Functions.channelset3DAttributes(Connection.ID, ID, new TSVector()));
+                        Check(Functions.setClientVolumeModifier(Connection.ID, ID, 0));
+                    }
                 }
             }
         }
@@ -127,15 +130,18 @@ namespace GTMPVoice
             if (ID != Connection.LocalClientId)
                 return;
             Log("Joining channel {0}", Connection.DefaultChannel);
-            Functions.requestClientMove(Connection.ID, ID, Connection.DefaultChannel, "", "");
+            Check(Functions.requestClientMove(Connection.ID, ID, Connection.DefaultChannel, "", ""));
         }
 
         internal void JoinChannel(ulong newChannel, string password = "")
         {
             if (ID != Connection.LocalClientId)
                 return;
-            Log("Joining channel {0}", newChannel);
-            Functions.requestClientMove(Connection.ID, ID, newChannel, password, GTMPVoicePlugin.GetReturnCode(PluginReturnCode.JOINCHANNEL));
+            Log("{0} Joining channel {1}", ID, newChannel);
+            if (newChannel == Connection.IngameChannel)
+                Check(Functions.requestClientMove(Connection.ID, ID, newChannel, password, GTMPVoicePlugin.GetReturnCode(PluginReturnCode.JOINCHANNEL_INGAME)));
+            else
+                Check(Functions.requestClientMove(Connection.ID, ID, newChannel, password, GTMPVoicePlugin.GetReturnCode(PluginReturnCode.JOINCHANNEL)));
         }
 
         public string GetClientVarString(ClientProperty flag)
@@ -193,12 +199,12 @@ namespace GTMPVoice
             VolumeModifier = volumeModifier;
             if (IsLocalClient)
             {
-                Functions.systemset3DListenerAttributes(Connection.ID, Position, NullVector, NullVector);
+                Check(Functions.systemset3DListenerAttributes(Connection.ID, Position, NullVector, NullVector));
             }
             else
             {
-                Functions.channelset3DAttributes(Connection.ID, ID, Position);
-                Functions.setClientVolumeModifier(Connection.ID, ID, VolumeModifier);
+                Check(Functions.channelset3DAttributes(Connection.ID, ID, Position));
+                Check(Functions.setClientVolumeModifier(Connection.ID, ID, VolumeModifier));
                 if (execMute)
                     Unmute();
             }

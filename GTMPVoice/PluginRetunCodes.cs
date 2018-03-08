@@ -10,5 +10,6 @@ namespace GTMPVoice
     {
         NOCODE = 0,
         JOINCHANNEL = 1,
+        JOINCHANNEL_INGAME = 1,
     }
 }

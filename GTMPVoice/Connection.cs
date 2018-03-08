@@ -338,6 +338,7 @@ namespace GTMPVoice
             {
                 if (!CanLeaveIngameChannel && !AllowedOutGameChannels.Contains(clientCurrentChannel))
                 {
+                    GTMPVoicePlugin.Log("Timer: Local Client left ingame channel while inGame");
                     LocalClient.JoinChannel(IngameChannel, IngameChannelPassword);
                 }
                 else
@@ -353,15 +354,15 @@ namespace GTMPVoice
             {
                 clients = new List<ushort>(_MutedClients.ToArray());
                 clients.Add(0);
-                Log("Muting  {0}: {1}", clients.Count, string.Join(",", clients));
-                Functions.requestMuteClients(ID, clients.ToArray(), retcode);
+                Log("Timer: Muting  {0}: {1}", clients.Count, string.Join(",", clients));
+                Check(Functions.requestMuteClients(ID, clients.ToArray(), retcode));
             }
             if (_UnmutedClients.Count > 0)
             {
                 clients = new List<ushort>(_UnmutedClients.ToArray());
                 clients.Add(0);
-                Log("Unmuting  {0}: {1}", clients.Count, string.Join(",", clients));
-                Functions.requestUnmuteClients(ID, clients.ToArray(), retcode);
+                Log("Timer: Unmuting  {0}: {1}", clients.Count, string.Join(",", clients));
+                Check(Functions.requestUnmuteClients(ID, clients.ToArray(), retcode));
             }
         }
 

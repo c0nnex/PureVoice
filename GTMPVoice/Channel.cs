@@ -28,9 +28,24 @@ namespace GTMPVoice
                 Clients = ReadShortIDList(result, (u) => u);
         }
 
-        internal void UnmuteAll()
+        internal void UnmuteAll(bool resetPosition = false)
         {
+            UpdateClientList();
             Connection.DoUnmuteList(AllClients);
+            if (resetPosition)
+            {
+                AllClients.ForEach(cl =>
+               {
+                   Check(Functions.channelset3DAttributes(Connection.ID, cl, new TSVector()));
+                   Check(Functions.setClientVolumeModifier(Connection.ID, cl, 0));
+               });
+            }
+        }
+
+        internal void MuteAll()
+        {
+            UpdateClientList();
+            Connection.DoMuteList(AllClients);
         }
 
         internal void RemoveClient(ushort id)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,12 +27,12 @@ namespace GTMPVoice
             GTMPVoicePlugin.Log(str, args);
         }
 
-        internal bool Check(uint error) { return Check((Error)error); }
-        internal bool Check(Error error)
+        internal bool Check(uint error, [CallerMemberName] string tag = null, [CallerFilePath] string code = null, [CallerLineNumber] int codeLine = 0) { return Check((Error)error,tag,code,codeLine); }
+        internal bool Check(Error error, string tag = null, string code = null, int codeLine = 0)
         {
             if (error != Error.Ok && error != Error.OkNoUpdate)
             {
-                Log("ERROR: {0} {1}", error,(uint)error);
+                Log("ERROR: {0} {1} ({2} {3}:{4})", error,(uint)error,tag,code,codeLine);
                 return false;
             }
             return true;
