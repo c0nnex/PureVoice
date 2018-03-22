@@ -9,18 +9,22 @@ namespace GTMPVoice.VoiceClient
 
         public void SendKnown(NetManager netManager, INetSerializable o, DeliveryMethod deliveryMethod = DeliveryMethod.ReliableOrdered)
         {
-            _netDataWriter.Reset();
-            WriteHash(o.GetType(), _netDataWriter);
-            o.Serialize(_netDataWriter);
-            netManager.SendToAll(_netDataWriter, deliveryMethod);
+            using (var nw = new NetDataWriter())
+            {
+                WriteHash(o.GetType(), nw);
+                o.Serialize(nw);
+                netManager.SendToAll(nw, deliveryMethod);
+            }
         }
 
         public void SendKnown(NetPeer peer, INetSerializable o, DeliveryMethod deliveryMethod = DeliveryMethod.ReliableOrdered)
         {
-            _netDataWriter.Reset();
-            WriteHash(o.GetType(), _netDataWriter);
-            o.Serialize(_netDataWriter);
-            peer.Send(_netDataWriter, deliveryMethod);
+            using (var nw = new NetDataWriter())
+            {
+                WriteHash(o.GetType(), nw);
+                o.Serialize(nw);
+                peer.Send(nw, deliveryMethod);
+            }
         }
     }
 }

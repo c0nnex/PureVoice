@@ -107,7 +107,7 @@ namespace GTMPVoice
                 }
                 return;
             }
-            if (Connection.IsInitialized && Connection.IsVoiceEnabled)
+            if (Connection.IsInitialized)
             {
                 if (newChannel == Connection.IngameChannel)
                 {

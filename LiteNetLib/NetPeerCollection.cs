@@ -1,23 +1,19 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LiteNetLib
 {
     internal sealed class NetPeerCollection
     {
-        private readonly Dictionary<NetEndPoint, NetPeer> _peersDict;
-        private readonly NetPeer[] _peersArray;
-        public int Count;
+        private readonly ConcurrentDictionary<NetEndPoint, NetPeer> _peersDict;
+        public int Count => _peersDict.Count;
 
-        public NetPeer this[int index]
-        {
-            get { return _peersArray[index]; }
-        }
 
         public NetPeerCollection(int maxPeers)
         {
-            _peersArray = new NetPeer[maxPeers];
-            _peersDict = new Dictionary<NetEndPoint, NetPeer>();
+            _peersDict = new ConcurrentDictionary<NetEndPoint, NetPeer>();
         }
 
         public bool TryGetValue(NetEndPoint endPoint, out NetPeer peer)
@@ -27,53 +23,30 @@ namespace LiteNetLib
 
         public void Clear()
         {
-            Array.Clear(_peersArray, 0, Count);
             _peersDict.Clear();
         }
 
+        public List<NetPeer> All => _peersDict.Values.ToList();
+
         public void Add(NetEndPoint endPoint, NetPeer peer)
         {
-            if (_peersDict.ContainsKey(endPoint) == false)
-            {
-                _peersDict.Add(endPoint, peer);
-                _peersArray[Count] = peer;
-                Count++;
-            }
+            _peersDict[endPoint] = peer;
         }
 
         public bool ContainsAddress(NetEndPoint endPoint)
         {
-            return _peersDict.ContainsKey(endPoint);
+            return _peersDict.Values.Any(p => p.EndPoint == endPoint);
         }
 
         public NetPeer[] ToArray()
         {
-            NetPeer[] result = new NetPeer[Count];
-            Array.Copy(_peersArray, 0, result, 0, Count);
-            return result;
+            return _peersDict.Values.ToArray();
         }
 
-        public void Remove(NetPeer peer)
+        public void Remove(NetEndPoint peerEndPoint)
         {
-            for (int idx = 0; idx < Count; idx++)
-            {
-                if (_peersArray[idx] == peer)
-                {
-                    _peersDict.Remove(_peersArray[idx].EndPoint);
-                    _peersArray[idx] = _peersArray[Count - 1];
-                    _peersArray[Count - 1] = null;
-                    Count--;
-                    break;
-                }
-            }
+            _peersDict.TryRemove(peerEndPoint, out var _);
         }
 
-        public void RemoveAt(int idx)
-        {
-            _peersDict.Remove(_peersArray[idx].EndPoint);
-            _peersArray[idx] = _peersArray[Count - 1];
-            _peersArray[Count - 1] = null;
-            Count--;
-        }
     }
 }

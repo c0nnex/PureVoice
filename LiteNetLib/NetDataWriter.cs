@@ -3,7 +3,7 @@ using System.Text;
 
 namespace LiteNetLib.Utils
 {
-    public class NetDataWriter
+    public class NetDataWriter : IDisposable
     {
         protected byte[] _data;
         protected int _position;
@@ -417,6 +417,10 @@ namespace LiteNetLib.Utils
             Encoding.UTF8.GetBytes(value, 0, length, _data, _position);
 
             _position += bytesCount;
+        }
+
+        public void Dispose() {
+            Reset();
         }
     }
 }

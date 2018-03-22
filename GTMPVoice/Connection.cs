@@ -137,7 +137,8 @@ namespace GTMPVoice
         {
             if (ClientMap.TryRemove(id, out var client))
             {
-                GetChannel(client.ChannelID)?.RemoveClient(id);
+                if (client.ChannelID != 0)
+                    GetChannel(client.ChannelID)?.RemoveClient(id);
             }
             RemoveMute(id);
         }
@@ -207,7 +208,7 @@ namespace GTMPVoice
                 _UnmutedClients.Clear();
                 SwitchBack();
             }
-            UnmuteAll();
+            
         }
 
         internal void UnmuteAll()
