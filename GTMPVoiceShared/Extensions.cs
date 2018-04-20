@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace GTMPVoice
 {
-    public static class Extensions
+    internal static class Extensions
     {
         public static Task DelayedCall<T>(this T obj, int delayMilliseconds, Action<T> act)
         {
@@ -134,7 +134,7 @@ namespace ConcurrentCollections
     /// concurrently from multiple threads.
     /// </remarks>
     [DebuggerDisplay("Count = {Count}")]
-    public class ConcurrentHashSet<T> : IReadOnlyCollection<T>, ICollection<T>
+    internal class ConcurrentHashSet<T> : IReadOnlyCollection<T>, ICollection<T>
     {
         private const int DefaultCapacity = 31;
         private const int MaxLockNumber = 1024;

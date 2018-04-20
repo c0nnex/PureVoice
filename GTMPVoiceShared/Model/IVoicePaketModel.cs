@@ -37,6 +37,8 @@ namespace GTMPVoice.VoiceClient.Model
             Register<VoicePaketBatchMute>();
             Register<VoicePaketBatchUpdate>();
             Register<VoicePaketConfigureClient>();
+            Register<VoicePaketMicrophoneState>();
+            Register<VoicePaketSpeakersState>();
         }
 
         public static void Init() { }

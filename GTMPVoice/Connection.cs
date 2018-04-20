@@ -11,7 +11,7 @@ using TeamSpeakPlugin;
 
 namespace GTMPVoice
 {
-    public class Connection : TeamSpeakBase
+    internal class Connection : TeamSpeakBase
     {
         public delegate Client GetClientDelegate(string nameOrGuid);
 

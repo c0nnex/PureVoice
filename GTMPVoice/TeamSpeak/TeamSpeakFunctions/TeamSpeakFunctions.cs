@@ -437,7 +437,7 @@ public delegate uint TS3Functions_getClientID(ulong serverConnectionHandlerID, r
 ///serverConnectionHandlerID: uint64->unsigned __int64
 ///flag: size_t->uint
 ///result: int
-public delegate uint TS3Functions_getClientSelfVariableAsInt(ulong serverConnectionHandlerID, ClientProperty flag, [Out] int result);
+public delegate uint TS3Functions_getClientSelfVariableAsInt(ulong serverConnectionHandlerID, ClientProperty flag, [Out] out int result);
 
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64

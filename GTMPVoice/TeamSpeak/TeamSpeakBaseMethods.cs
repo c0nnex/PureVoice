@@ -226,7 +226,19 @@ namespace TeamSpeakPlugin
             GTMPVoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).SetName(displayName);
         }
 
-
+        /// <summary>
+        /// When a variable of the local client changed
+        /// </summary>
+        /// <param name="serverConnectionHandlerID">Server connection handler ID.</param>
+        /// <param name="flag">Variable thet chaned</param>
+        /// <param name="oldValue">old value</param>
+        /// <param name="newValue">new value</param>
+        [DllExport]
+        public static void ts3plugin_onClientSelfVariableUpdateEvent(ulong serverConnectionHandlerID, int flag, string oldValue, string newValue)
+        {
+            GTMPVoicePlugin.VerboseLog("{0} {1} o:{2} n:{3}",MethodInfo.GetCurrentMethod().Name,(ClientProperty)flag,oldValue,newValue);
+            GTMPVoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient?.OnSelfVariableChanged((ClientProperty)flag, oldValue, newValue);
+        }
 
         #endregion
 #if DEBUG_TS3 || false
@@ -599,11 +611,7 @@ namespace TeamSpeakPlugin
             return 0;
         }
 
-        [DllExport]
-        public static void ts3plugin_onClientSelfVariableUpdateEvent(ulong serverConnectionHandlerID, int flag, string oldValue, string newValue)
-        {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-        }
+        
 
         [DllExport]
         public static void ts3plugin_onFileListEvent(ulong serverConnectionHandlerID, ulong channelID, string path, string name, ulong size, ulong datetime, int type, ulong incompletesize, string returnCode)

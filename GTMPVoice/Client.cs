@@ -7,7 +7,7 @@ using TeamSpeakPlugin;
 
 namespace GTMPVoice
 {
-    public class Client : TeamSpeakBase
+    internal class Client : TeamSpeakBase
     {
         private static TSVector NullVector = new TSVector(0, 0, 0);
         public Connection Connection;
@@ -20,7 +20,8 @@ namespace GTMPVoice
         public bool IsTalking;
         public ulong ChannelID = 0;
         public ulong LastChannel = 1;
-
+        public bool IsMicrophoneMuted = false;
+        public bool IsSpeakersMuted = false;
         public bool IsLocalClient;
         public bool ShouldBeMuted = false;
         public bool IsMuted => GetBool(ClientProperty.CLIENT_IS_MUTED);
@@ -56,6 +57,11 @@ namespace GTMPVoice
                 GUID = GetClientVarString(ClientProperty.CLIENT_UNIQUE_IDENTIFIER);
                 Log("Client {0} {1} ({2})", ID, GUID, Name);
             }
+            if (ID == Connection.LocalClientId)
+            {
+                IsMicrophoneMuted = GetBool(ClientProperty.CLIENT_INPUT_MUTED) || GetBool(ClientProperty.CLIENT_INPUT_DEACTIVATED);
+                IsSpeakersMuted = GetBool(ClientProperty.CLIENT_OUTPUT_MUTED);
+            }
         }
 
         public void UpdateChannel()
@@ -70,7 +76,8 @@ namespace GTMPVoice
             if (Name != newName)
             {
                 var saveName = Name;
-                if (Functions.setClientSelfVariableAsString(Connection.ID, ClientProperty.CLIENT_NICKNAME, newName) == ERROR_OK)
+                Log("SetNickName old {0} new {1}", saveName, newName);
+                if (Check(Functions.setClientSelfVariableAsString(Connection.ID, ClientProperty.CLIENT_NICKNAME, newName)))
                 {
                     LastName = saveName;
                     Name = newName;
@@ -125,6 +132,23 @@ namespace GTMPVoice
             }
         }
 
+        internal void OnSelfVariableChanged(ClientProperty flag, string oldValue, string newValue)
+        {
+            if (flag == ClientProperty.CLIENT_INPUT_MUTED)
+            {
+                IsMicrophoneMuted = newValue == "1";
+                GTMPVoicePlugin.voiceClient.SendMicrophoneStatusChanged(IsMicrophoneMuted);
+                return;
+            }
+            if (flag == ClientProperty.CLIENT_OUTPUT_MUTED)
+            {
+                IsSpeakersMuted = newValue == "1";
+                GTMPVoicePlugin.voiceClient.SendSpeakersStatusChanged(IsSpeakersMuted);
+                return;
+            }
+
+        }
+
         internal void JoinDefaultChannel()
         {
             if (ID != Connection.LocalClientId)
@@ -177,7 +201,14 @@ namespace GTMPVoice
         private int GetInt(ClientProperty flag)
         {
             int res = 0;
-            Check(Functions.getClientVariableAsInt(Connection.ID, ID, (IntPtr)flag, out res));
+            if (ID == Connection.LocalClientId)
+            {
+                Check(Functions.getClientSelfVariableAsInt(Connection.ID, flag, out res));
+            }
+            else
+            {
+                Check(Functions.getClientVariableAsInt(Connection.ID, ID, (IntPtr)flag, out res));
+            }
             return res;
         }
 

@@ -28,10 +28,10 @@ namespace GTMPVoice
         private static ConcurrentDictionary<ulong, Connection> Connections;
 
         internal static bool InitializationDone { get; private set; }
-
+#if false
         // TODO: Make configurable by ini file
         internal static string VersionCheckUrl = "http://cherrypad.cherryrp.de:28002/pluginVersion.txt";
-
+#endif
         /// <summary>
         /// The plugin name.
         /// </summary>
@@ -61,8 +61,11 @@ namespace GTMPVoice
         private static Dictionary<PluginReturnCode, string> _pluginReturnCodes;
 
         private static bool _FunctionsSet = false;
-        
+#if false
         internal static async System.Threading.Tasks.Task<int> InitAsync()
+#else
+        internal static async System.Threading.Tasks.Task<int> InitAsync()
+#endif
         {
             Log("Initializing {0}", PluginVersion);
 
@@ -76,7 +79,7 @@ namespace GTMPVoice
                 _pluginReturnCodes[code] = sb.ToString();
                 Log("{0} => {1}", code, sb.ToString());
             }
-
+#if false
             HttpClient client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(2);
             try
@@ -98,7 +101,7 @@ namespace GTMPVoice
             {
                 Log("Could not check version: {0}", ex.Message);
             }
-
+#endif
             IntPtr serverList = IntPtr.Zero;
             if (Functions.getServerConnectionHandlerList(ref serverList) == 0)
             {

@@ -12,10 +12,11 @@ using System.Timers;
 
 namespace GTMPVoice.Server
 {
-    public delegate void VoiceClientConnectedDelegate(string clientGUID,string teamspeakID,ushort teamspeakClientID, long connectionID);
+    public delegate void VoiceClientConnectedDelegate(string clientGUID, string teamspeakID, ushort teamspeakClientID, long connectionID, string clientName, bool micMuted, bool speakersMuted);
     public delegate void VoiceClientOutdatedDelegate(string clientGUID, Version hisVersion, Version ourVersion);
     public delegate void VoiceClientDisconnectedDelegate(long connectionId);
-    public delegate void VoiceClientTalkingDelegate(long connectionId,bool isTalking);
+    public delegate void VoiceClientTalkingDelegate(long connectionId, bool isTalking);
+    public delegate void VoiceClientMuteStatusChangedDelegate(long connectionId, bool isMuted);
 
     public class VoiceServer : INetEventListener, INetLogger, IDisposable
     {
@@ -23,7 +24,7 @@ namespace GTMPVoice.Server
 
         private NetManager _server;
         private readonly VoicePaketProcessor _netPacketProcessor = new VoicePaketProcessor();
-        
+
         private readonly string _secret;
         private readonly Version _requiredClientVersion = new Version(0, 0, 0, 0);
 
@@ -38,15 +39,46 @@ namespace GTMPVoice.Server
 
         private ConcurrentDictionary<long, NetPeer> _connectedPeers = new ConcurrentDictionary<long, NetPeer>();
 
+        /// <summary>
+        /// Event when a new client connected to us
+        /// </summary>
         public event VoiceClientConnectedDelegate VoiceClientConnected;
+        /// <summary>
+        /// Event when a client with an outdaten plugin version connected
+        /// </summary>
         public event VoiceClientOutdatedDelegate VoiceClientOutdated;
+        /// <summary>
+        /// A client discronnected
+        /// </summary>
         public event VoiceClientDisconnectedDelegate VoiceClientDisconnected;
+        /// <summary>
+        /// The "isTalking" State of a client changed (only if LipSync is enabled)
+        /// </summary>
         public event VoiceClientTalkingDelegate VoiceClientTalking;
+        /// <summary>
+        /// The Mute-State of the mircophjone of a client changed
+        /// </summary>
+        public event VoiceClientMuteStatusChangedDelegate VoiceClientMicrophoneStatusChanged;
+        /// <summary>
+        /// The Mute-State of the speakers of a client changed
+        /// </summary>
+        public event VoiceClientMuteStatusChangedDelegate VoiceClientSpeakersStatusChanged;
 
         private HashSet<ulong> _AllowedOutGameChannels = new HashSet<ulong>();
 
-        public VoiceServer(int port, string secret, string serverGUID, Version requiredClientVersion, ulong defaultChannel, 
-            ulong ingameChannel, string ingameChannelPassword,bool enableLipSync)
+        /// <summary>
+        /// Create a new VoiceServer
+        /// </summary>
+        /// <param name="port">UDP Port to listen on</param>
+        /// <param name="secret">Our sharted secret</param>
+        /// <param name="serverGUID">a unique identifier of the Server (for TS3 the TS3-Server-Instance Identifier)</param>
+        /// <param name="requiredClientVersion">minimum plugin version required</param>
+        /// <param name="defaultChannel">a default channel to join if client cannot rejoin previous channel</param>
+        /// <param name="ingameChannel">the ingame channel id</param>
+        /// <param name="ingameChannelPassword">(oprion) password for the ingame channel.Leave empty for none</param>
+        /// <param name="enableLipSync">enable talking-change events fopr lipsync</param>
+        public VoiceServer(int port, string secret, string serverGUID, Version requiredClientVersion, ulong defaultChannel,
+            ulong ingameChannel, string ingameChannelPassword, bool enableLipSync)
         {
             _server = new NetManager(this, 400)
             {
@@ -65,7 +97,10 @@ namespace GTMPVoice.Server
             IVoicePaketModel.Init();
             _netPacketProcessor.SubscribeNetSerializable<VoicePaketCommand, NetPeer>(OnVoiceCommand);
             _netPacketProcessor.SubscribeNetSerializable<VoicePaketTalking, NetPeer>(OnVoiceTalking);
+            _netPacketProcessor.SubscribeNetSerializable<VoicePaketMicrophoneState, NetPeer>(OnMicrophoneStateChanged);
+            _netPacketProcessor.SubscribeNetSerializable<VoicePaketSpeakersState, NetPeer>(OnSpeakerStateChanged);
             _netPacketProcessor.SubscribeNetSerializable<VoicePaketConnectClient, NetPeer>(OnVoiceClientConnect);
+
             if (!_server.Start(port))
             {
                 throw new InvalidOperationException("Starting VoiceServer failed");
@@ -76,9 +111,12 @@ namespace GTMPVoice.Server
             timer.Start();
         }
 
+
+
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            Logger.Debug("Connected Clients: {0}/{1}/{2}",_server.GetPeersCount(ConnectionState.Connected), _server.PeersCount,_connectedPeers.Count);
+            if (_server.PeersCount > 0)
+                Logger.Debug("Connected Clients: {0}/{1}/{2}", _server.GetPeersCount(ConnectionState.Connected), _server.PeersCount, _connectedPeers.Count);
 
             foreach (var kvp in _connectedPeers.ToList())
             {
@@ -110,13 +148,15 @@ namespace GTMPVoice.Server
             _server = null;
         }
 
-       
-
+        /// <summary>
+        /// Register channelids that are allowed to join when being in game (e.g. Support channels)
+        /// </summary>
+        /// <param name="channelIds"></param>
         public void RegisterOutGameChannels(params ulong[] channelIds)
         {
             _AllowedOutGameChannels = new HashSet<ulong>(channelIds);
         }
-        
+
         internal void SendToAll(INetSerializable data)
         {
             if (_server != null && _server.IsRunning && _server.PeersCount > 0)
@@ -130,13 +170,18 @@ namespace GTMPVoice.Server
         {
             if (_server != null && _server.IsRunning && _server.PeersCount > 0)
             {
-               // Logger.Debug("Sending {0}", data);
+                // Logger.Debug("Sending {0}", data);
                 _netPacketProcessor.SendKnown(peer, data, DeliveryMethod.ReliableOrdered);
             }
         }
 
+        /// <summary>
+        /// Mute a client on anaother client
+        /// </summary>
+        /// <param name="targetId">the client where to mute someone</param>
+        /// <param name="playerName">the name of the player to mute</param>
         public void MutePlayer(long targetId, string playerName)
-        {            
+        {
             if (_connectedPeers.TryGetValue(targetId, out var peer))
             {
                 if (peer.ConnectionState == ConnectionState.Connected)
@@ -150,6 +195,11 @@ namespace GTMPVoice.Server
             }
         }
 
+        /// <summary>
+        /// Send a voice update to a client
+        /// </summary>
+        /// <param name="targetId">target client</param>
+        /// <param name="data">new voice data</param>
         public void SendUpdate(long targetId, IEnumerable<VoiceLocationInformation> data)
         {
             if (_connectedPeers.TryGetValue(targetId, out var peer))
@@ -161,7 +211,7 @@ namespace GTMPVoice.Server
                     List<BatchDataRecord> list = new List<BatchDataRecord>();
                     foreach (var item in data)
                     {
-                       list.Add(new BatchDataRecord() { ClientID = item.ClientID, Position = item.Position, VolumeModifier = item.VolumeModifier });
+                        list.Add(new BatchDataRecord() { ClientID = item.ClientID, Position = item.Position, VolumeModifier = item.VolumeModifier });
                     }
                     p.Data = list.ToArray();
                     //Logger.Debug("SendUpdate {0} {1} Records => {2}",targetId, data.Count(),p.Data.Length);
@@ -170,6 +220,11 @@ namespace GTMPVoice.Server
             }
         }
 
+        /// <summary>
+        /// Send a voice update to a client
+        /// </summary>
+        /// <param name="targetId">target client</param>
+        /// <param name="data">new voice data</param>
         public void SendUpdate(long targetId, VoiceLocationInformation data)
         {
             if (_connectedPeers.TryGetValue(targetId, out var peer))
@@ -183,12 +238,19 @@ namespace GTMPVoice.Server
                         Position = data.Position,
                         PositionIsRelative = data.IsRelative,
                         VolumeModifier = data.VolumeModifier,
-                    },DeliveryMethod.ReliableOrdered);
+                    }, DeliveryMethod.ReliableOrdered);
                 }
             }
         }
 
-
+        /// <summary>
+        ///  Send a voice update to a client
+        /// </summary>
+        /// <param name="targetId">target client</param>
+        /// <param name="playerName">affected client</param>
+        /// <param name="position">3D position</param>
+        /// <param name="volumeModifier">vol modifier (-10.0 ... +10.0)</param>
+        /// <param name="positionIsRelative">position is relative to the target client</param>
         public void SendUpdate(long targetId, string playerName, TSVector position, float volumeModifier, bool positionIsRelative)
         {
             if (_connectedPeers.TryGetValue(targetId, out var peer))
@@ -206,6 +268,12 @@ namespace GTMPVoice.Server
             }
         }
 
+        /// <summary>
+        /// Set client configuration
+        /// </summary>
+        /// <param name="targetId">target client</param>
+        /// <param name="nickName">new nick name</param>
+        /// <param name="canLeaveIngameChannel">if the client is allowed to leave the ongame channel</param>
         public void ConfigureClient(long targetId, string nickName, bool canLeaveIngameChannel)
         {
             if (_connectedPeers.TryGetValue(targetId, out var peer))
@@ -221,9 +289,15 @@ namespace GTMPVoice.Server
             }
         }
 
+        /// <summary>
+        /// Send a voice command to the client
+        /// </summary>
+        /// <param name="targetId">target client</param>
+        /// <param name="command">command</param>
+        /// <param name="data">optional command data</param>
         public void SendCommand(long targetId, string command, string data)
         {
-            if (_connectedPeers.TryGetValue(targetId,out var peer))
+            if (_connectedPeers.TryGetValue(targetId, out var peer))
             {
                 if (peer.ConnectionState == ConnectionState.Connected)
                 {
@@ -232,15 +306,6 @@ namespace GTMPVoice.Server
             }
         }
 
-        /*        public void SendUnconnected(INetSerializable data, string host,int port)
-                {
-                    if (_server != null && _server.IsRunning)
-                    {
-                        Logger.Debug("Sending {0} to {1}:{2}", data,host,port);
-                        _netPacketProcessor.SendKnownTo(_server, data, host,port);
-                    }
-                }
-        */
         public void OnConnectionRequest(ConnectionRequest request)
         {
             var connectPaket = new VoicePaketConnectServer();
@@ -282,12 +347,12 @@ namespace GTMPVoice.Server
                 }
                 catch (ParseException ex)
                 {
-                    Logger.Warn("OnNetworkReceive {0}: {1} Data {2}", peer.EndPoint.ToString(),ex.Message,reader.Data.HexDump());
+                    Logger.Warn("OnNetworkReceive {0}: {1} Data {2}", peer.EndPoint.ToString(), ex.Message, reader.Data.HexDump());
                     peer.Disconnect();
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex, "OnNetworkReceive {0}",peer.EndPoint.ToString());
+                    Logger.Warn(ex, "OnNetworkReceive {0}", peer.EndPoint.ToString());
                     peer.Disconnect();
                 }
             }
@@ -322,7 +387,14 @@ namespace GTMPVoice.Server
                 _server.DisconnectPeerForce(peer);
                 Thread.Sleep(200);
                 Logger.Debug("Client disconnected: {0} : {1}", peer.EndPoint, disconnectInfo.Reason);
-                VoiceClientDisconnected?.Invoke(peer.ConnectId);
+                try
+                {
+                    VoiceClientDisconnected?.Invoke(peer.ConnectId);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex);
+                }
             }
         }
 
@@ -331,14 +403,53 @@ namespace GTMPVoice.Server
             Logger.Debug("VoiceCommand {0}", args.Command);
         }
 
-        void OnVoiceClientConnect(VoicePaketConnectClient args,NetPeer peer)
+        void OnVoiceClientConnect(VoicePaketConnectClient args, NetPeer peer)
         {
-            VoiceClientConnected?.Invoke(args.ClientGUID, args.TeamspeakID, args.TeamspeakClientID, peer.ConnectId);
+            try
+            {
+                VoiceClientConnected?.Invoke(args.ClientGUID, args.TeamspeakID, args.TeamspeakClientID, peer.ConnectId, args.TeamspeakClientName, args.MicrophoneMuted, args.SpeakersMuted);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex);
+            }
         }
 
         void OnVoiceTalking(VoicePaketTalking args, NetPeer peer)
         {
-            VoiceClientTalking?.Invoke(peer.ConnectId, args.IsTalking);
+            try
+            {
+                if (_enableLipSync)
+                    VoiceClientTalking?.Invoke(peer.ConnectId, args.IsTalking);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex);
+            }
+        }
+
+        private void OnSpeakerStateChanged(VoicePaketSpeakersState args, NetPeer peer)
+        {
+            try
+            {
+                VoiceClientSpeakersStatusChanged?.Invoke(peer.ConnectId, args.IsMuted);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex);
+            }
+        }
+
+        private void OnMicrophoneStateChanged(VoicePaketMicrophoneState args, NetPeer peer)
+        {
+            try
+            {
+                VoiceClientMicrophoneStatusChanged?.Invoke(peer.ConnectId, args.IsMuted);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex);
+            }
         }
 
         void INetLogger.WriteNet(ConsoleColor color, string str, params object[] args)

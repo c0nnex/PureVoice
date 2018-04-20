@@ -202,7 +202,10 @@ namespace GTMPVoice.VoiceClient
                     {
                         ClientGUID = _configuration.ClientGUID,
                         TeamspeakID = e.LocalClient.GUID,
-                        TeamspeakClientID = e.LocalClientId
+                        TeamspeakClientID = e.LocalClientId,
+                        TeamspeakClientName = e.LocalClient.Name,
+                        MicrophoneMuted = e.LocalClient.IsMicrophoneMuted,
+                        SpeakersMuted = e.LocalClient.IsSpeakersMuted
                     }, DeliveryMethod.ReliableOrdered);
                 }
                 else
@@ -491,6 +494,24 @@ namespace GTMPVoice.VoiceClient
             var Connection = Client?.GetFirstPeer();
             if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
                 _netPacketProcessor.Send(Connection, new VoicePaketTalking(isTalking), DeliveryMethod.ReliableOrdered);
+        }
+
+        internal void SendSpeakersStatusChanged(bool isMuted)
+        { 
+            if (!IsConnected)
+                return;
+            var Connection = Client?.GetFirstPeer();
+            if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
+                _netPacketProcessor.Send(Connection, new VoicePaketSpeakersState(isMuted), DeliveryMethod.ReliableOrdered);
+        }
+
+        internal void SendMicrophoneStatusChanged(bool isMuted)
+        {
+            if (!IsConnected)
+                return;
+            var Connection = Client?.GetFirstPeer();
+            if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
+                _netPacketProcessor.Send(Connection, new VoicePaketMicrophoneState(isMuted), DeliveryMethod.ReliableOrdered);
         }
 
         public void WriteNet(ConsoleColor color, string str, params object[] args)

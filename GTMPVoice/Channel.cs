@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace GTMPVoice
 {
-    public class Channel : TeamSpeakBase
+    internal class Channel : TeamSpeakBase
     {
         public ulong ID;
         public Connection Connection;

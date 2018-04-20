@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace GTMPVoice
 {
-    public class SmartLock
+    internal class SmartLock
     {
         private object LockObject = new object();
         private string HoldingTrace = "";

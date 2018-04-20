@@ -20,6 +20,7 @@
     <DefineConstants>TRACE;DEBUG;DEBUG_MESSAGES</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\GTMPVoiceServer.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>full</DebugType>
@@ -29,6 +30,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile>bin\Release\GTMPVoiceServer.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="NLog">
@@ -45,8 +47,22 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\AssemblyInfoVersion.cs">
+      <DependentUpon>AssemblyInfoVersion.tt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
     <Compile Include="VoiceLocationInformation.cs" />
     <Compile Include="VoiceServer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Properties\AssemblyInfoVersion.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>AssemblyInfoVersion.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="..\LiteNetLib\LiteNetLib.projitems" Label="Shared" />
   <Import Project="..\GTMPVoiceShared\GTMPVoiceShared.projitems" Label="Shared" />
@@ -55,5 +71,8 @@
     <PostBuildEvent>if exist "$(ProjectDir)after_$(ConfigurationName)_build.cmd" (
 @"$(ProjectDir)after_$(ConfigurationName)_build.cmd" "$(TargetDir)$(TargetName).*"
 )</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>"$(DevEnvDir)TextTransform.exe" -out "$(ProjectDir)Properties\AssemblyInfoVersion.cs" "$(ProjectDir)Properties\AssemblyInfoVersion.tt"</PreBuildEvent>
   </PropertyGroup>
 </Project>

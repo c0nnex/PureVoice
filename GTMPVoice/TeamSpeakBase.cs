@@ -10,7 +10,7 @@ using TeamSpeakPlugin;
 
 namespace GTMPVoice
 {
-    public abstract class TeamSpeakBase
+    internal abstract class TeamSpeakBase
     {
         public static TS3Functions Functions;
         public static uint ERROR_OK = 0;

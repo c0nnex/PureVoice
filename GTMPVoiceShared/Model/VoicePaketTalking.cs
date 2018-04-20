@@ -11,4 +11,20 @@ namespace GTMPVoice.VoiceClient.Model
         public VoicePaketTalking() { }
         public VoicePaketTalking(bool isTalking) { IsTalking = isTalking; }
     }
+
+    class VoicePaketMicrophoneState : IVoicePaketModel
+    {
+        public bool IsMuted { get; set; }
+
+        public VoicePaketMicrophoneState() { }
+        public VoicePaketMicrophoneState(bool isMuted) { IsMuted = isMuted; }
+    }
+
+    class VoicePaketSpeakersState : IVoicePaketModel
+    {
+        public bool IsMuted { get; set; }
+
+        public VoicePaketSpeakersState() { }
+        public VoicePaketSpeakersState(bool ismuted) { IsMuted = ismuted; }
+    }
 }

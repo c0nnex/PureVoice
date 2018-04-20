@@ -14,6 +14,9 @@ namespace GTMPVoice.VoiceClient.Model
         public string ClientGUID { get; set; }
         public string TeamspeakID{ get; set; }
         public ushort TeamspeakClientID { get; set; }
+        public string TeamspeakClientName { get; set; }
+        public bool MicrophoneMuted { get; set; }
+        public bool SpeakersMuted { get; set; }
     }
 
     class VoicePaketConfigureClient : IVoicePaketModel
