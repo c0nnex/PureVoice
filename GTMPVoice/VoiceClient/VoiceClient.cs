@@ -269,6 +269,12 @@ namespace GTMPVoice.VoiceClient
                 if (hello == "GTMPVOICECOMMAND")
                 {
                     GTMPVoicePlugin.Log("Command from {0}", remoteEndPoint);
+                    if (IsConnected)
+                    {
+                        var Connection = Client?.GetFirstPeer();
+                        if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
+                            _netPacketProcessor.Send(Connection, new VoicePaketCommand() { Command = reader.GetString(), Data = reader.GetString() } , DeliveryMethod.ReliableOrdered);
+                    }
                     return;
                 }
                 if (hello != "GTMPVOICE")

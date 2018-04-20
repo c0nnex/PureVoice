@@ -17,10 +17,12 @@ namespace GTMPVoice.Server
     public delegate void VoiceClientDisconnectedDelegate(long connectionId);
     public delegate void VoiceClientTalkingDelegate(long connectionId, bool isTalking);
     public delegate void VoiceClientMuteStatusChangedDelegate(long connectionId, bool isMuted);
+    public delegate void VoiceClientCommandDelegate(long connectionId, string command, string data);
 
     public class VoiceServer : INetEventListener, INetLogger, IDisposable
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly Version _MinSupportedClientVersion = Version.Parse("0.2.840.625");
 
         private NetManager _server;
         private readonly VoicePaketProcessor _netPacketProcessor = new VoicePaketProcessor();
@@ -63,6 +65,10 @@ namespace GTMPVoice.Server
         /// The Mute-State of the speakers of a client changed
         /// </summary>
         public event VoiceClientMuteStatusChangedDelegate VoiceClientSpeakersStatusChanged;
+        /// <summary>
+        /// Received a Command from the TS3 plugin
+        /// </summary>
+        public event VoiceClientCommandDelegate VoiceClientCommand;
 
         private HashSet<ulong> _AllowedOutGameChannels = new HashSet<ulong>();
 
@@ -86,6 +92,8 @@ namespace GTMPVoice.Server
                 UnsyncedEvents = true,
             };
             _requiredClientVersion = requiredClientVersion;
+            if (_requiredClientVersion < _MinSupportedClientVersion)
+                _requiredClientVersion = _MinSupportedClientVersion;
             _secret = secret;
             _port = port;
             _serverGUID = serverGUID;
@@ -401,6 +409,7 @@ namespace GTMPVoice.Server
         void OnVoiceCommand(VoicePaketCommand args, NetPeer peer)
         {
             Logger.Debug("VoiceCommand {0}", args.Command);
+            VoiceClientCommand?.Invoke(peer.ConnectId, args.Command, args.Data);
         }
 
         void OnVoiceClientConnect(VoicePaketConnectClient args, NetPeer peer)
