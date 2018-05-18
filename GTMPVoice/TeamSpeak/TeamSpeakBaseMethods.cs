@@ -1,5 +1,4 @@
 ﻿using GTMPVoice;
-using RGiesecke.DllExport;
 using System;
 using System.Diagnostics;
 using System.Reflection;
