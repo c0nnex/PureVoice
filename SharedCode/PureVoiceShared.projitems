@@ -6,7 +6,7 @@
     <SharedGUID>501112a0-ccf2-4c78-bf33-61eefdfd153f</SharedGUID>
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
-    <Import_RootNamespace>GTMPVoiceShared</Import_RootNamespace>
+    <Import_RootNamespace>PureVoice</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />

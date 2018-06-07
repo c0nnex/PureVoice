@@ -3,21 +3,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoicePlugin", "GTMPVoice\PureVoicePlugin.csproj", "{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoicePlugin", "PureVoicePlugin\PureVoicePlugin.csproj", "{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteNetLib", "LiteNetLib\LiteNetLib.shproj", "{F6DCDF08-8192-41DE-9733-DC106150A441}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoiceServer", "GTMPVoiceServer\PureVoiceServer.csproj", "{A64CC169-F2C9-4FF1-8D62-97BD2197556E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoiceServer", "PureVoiceServer\PureVoiceServer.csproj", "{A64CC169-F2C9-4FF1-8D62-97BD2197556E}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "PureVoiceShared", "GTMPVoiceShared\PureVoiceShared.shproj", "{501112A0-CCF2-4C78-BF33-61EEFDFD153F}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "PureVoiceShared", "SharedCode\PureVoiceShared.shproj", "{501112A0-CCF2-4C78-BF33-61EEFDFD153F}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		GTMPVoiceShared\GTMPVoiceShared.projitems*{501112a0-ccf2-4c78-bf33-61eefdfd153f}*SharedItemsImports = 13
-		GTMPVoiceShared\GTMPVoiceShared.projitems*{a64cc169-f2c9-4ff1-8d62-97bd2197556e}*SharedItemsImports = 4
+		SharedCode\PureVoiceShared.projitems*{501112a0-ccf2-4c78-bf33-61eefdfd153f}*SharedItemsImports = 13
 		LiteNetLib\LiteNetLib.projitems*{a64cc169-f2c9-4ff1-8d62-97bd2197556e}*SharedItemsImports = 4
-		GTMPVoiceShared\GTMPVoiceShared.projitems*{d2f89d4f-b405-4fbb-9d29-3563cb6bce7d}*SharedItemsImports = 4
+		SharedCode\PureVoiceShared.projitems*{a64cc169-f2c9-4ff1-8d62-97bd2197556e}*SharedItemsImports = 4
 		LiteNetLib\LiteNetLib.projitems*{d2f89d4f-b405-4fbb-9d29-3563cb6bce7d}*SharedItemsImports = 4
+		SharedCode\PureVoiceShared.projitems*{d2f89d4f-b405-4fbb-9d29-3563cb6bce7d}*SharedItemsImports = 4
 		LiteNetLib\LiteNetLib.projitems*{f6dcdf08-8192-41de-9733-dc106150a441}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

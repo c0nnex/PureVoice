@@ -136,7 +136,7 @@
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="..\LiteNetLib\LiteNetLib.projitems" Label="Shared" />
-  <Import Project="..\GTMPVoiceShared\GTMPVoiceShared.projitems" Label="Shared" />
+  <Import Project="..\SharedCode\PureVoiceShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="../packages/UnmanagedExports.1.2.7/tools/RGiesecke.DllExport.targets" Condition="Exists('../packages/UnmanagedExports.1.2.7/tools/RGiesecke.DllExport.targets')" />
   <PropertyGroup>
