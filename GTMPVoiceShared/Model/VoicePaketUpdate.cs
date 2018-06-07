@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GTMPVoice.VoiceClient.Model
+namespace PureVoice.VoiceClient.Model
 {
     class VoicePaketUpdate : IVoicePaketModel
     {

@@ -1,7 +1,7 @@
 ﻿using LiteNetLib;
 using LiteNetLib.Utils;
 
-namespace GTMPVoice.VoiceClient
+namespace PureVoice.VoiceClient
 {
     class VoicePaketProcessor : NetPacketProcessor
     {

@@ -14,20 +14,20 @@ public struct TSVector
 #pragma warning restore 660, 661
 {
     /// <summary>
-    /// The x-coordinate of this <see cref="Vector"/> structure.
+    /// The x-coordinate of this <see cref="TSVector"/> structure.
     /// </summary>
     public float X;
     /// <summary>
-    /// The y-coordinate of this <see cref="Vector"/> structure.
+    /// The y-coordinate of this <see cref="TSVector"/> structure.
     /// </summary>
     public float Y;
     /// <summary>
-    /// The z-coordinate of this <see cref="Vector"/> structure.
+    /// The z-coordinate of this <see cref="TSVector"/> structure.
     /// </summary>
     public float Z;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Vector"/> structure. 
+    /// Initializes a new instance of the <see cref="TSVector"/> structure. 
     /// </summary>
     /// <param name="x">The <see cref="X"/> value</param>
     /// <param name="y">The <see cref="Y"/> value</param>

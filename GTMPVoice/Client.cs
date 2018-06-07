@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TeamSpeakPlugin;
 
-namespace GTMPVoice
+namespace PureVoice
 {
     internal class Client : TeamSpeakBase
     {
@@ -137,13 +137,13 @@ namespace GTMPVoice
             if (flag == ClientProperty.CLIENT_INPUT_MUTED)
             {
                 IsMicrophoneMuted = newValue == "1";
-                GTMPVoicePlugin.voiceClient.SendMicrophoneStatusChanged(IsMicrophoneMuted);
+                VoicePlugin.voiceClient.SendMicrophoneStatusChanged(IsMicrophoneMuted);
                 return;
             }
             if (flag == ClientProperty.CLIENT_OUTPUT_MUTED)
             {
                 IsSpeakersMuted = newValue == "1";
-                GTMPVoicePlugin.voiceClient.SendSpeakersStatusChanged(IsSpeakersMuted);
+                VoicePlugin.voiceClient.SendSpeakersStatusChanged(IsSpeakersMuted);
                 return;
             }
 
@@ -163,9 +163,9 @@ namespace GTMPVoice
                 return;
             Log("{0} Joining channel {1}", ID, newChannel);
             if (newChannel == Connection.IngameChannel)
-                Check(Functions.requestClientMove(Connection.ID, ID, newChannel, password, GTMPVoicePlugin.GetReturnCode(PluginReturnCode.JOINCHANNEL_INGAME)));
+                Check(Functions.requestClientMove(Connection.ID, ID, newChannel, password, VoicePlugin.GetReturnCode(PluginReturnCode.JOINCHANNEL_INGAME)));
             else
-                Check(Functions.requestClientMove(Connection.ID, ID, newChannel, password, GTMPVoicePlugin.GetReturnCode(PluginReturnCode.JOINCHANNEL)));
+                Check(Functions.requestClientMove(Connection.ID, ID, newChannel, password, VoicePlugin.GetReturnCode(PluginReturnCode.JOINCHANNEL)));
         }
 
         public string GetClientVarString(ClientProperty flag)

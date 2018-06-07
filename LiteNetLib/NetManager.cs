@@ -496,7 +496,7 @@ namespace LiteNetLib
                 var netEvent = CreateEvent(NetEventType.Error);
                 netEvent.AdditionalData = errorCode;
                 EnqueueEvent(netEvent);
-                NetUtils.DebugWriteError("[NM] Receive error: {0}" + errorCode);
+                NetUtils.DebugWriteError("[NM] Receive error: {0}" , errorCode);
             }
         }
 

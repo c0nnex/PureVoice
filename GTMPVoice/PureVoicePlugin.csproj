@@ -7,8 +7,8 @@
     <ProjectGuid>{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>GTMPVoice</RootNamespace>
-    <AssemblyName>GTMPVoice</AssemblyName>
+    <RootNamespace>PureVoice</RootNamespace>
+    <AssemblyName>PureVoice</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -52,6 +52,16 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug Network|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug Network\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;NO_DEBUG_MESSAGES</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="RGiesecke.DllExport.Metadata, Version=1.0.0.0, Culture=neutral, PublicKeyToken=8f52d83c1a22df51, processorArchitecture=MSIL">
       <HintPath>..\packages\UnmanagedExports.1.2.7\lib\net\RGiesecke.DllExport.Metadata.dll</HintPath>
@@ -92,7 +102,7 @@
     <Compile Include="TeamSpeak\TeamSpeakFunctions\Enums\PluginTypeEnum.cs" />
     <Compile Include="TeamSpeak\TeamSpeakFunctions\Enums\VirtualServerPropertiesEnum.cs" />
     <Compile Include="TeamSpeak\TeamSpeakFunctions\TeamSpeakFunctions.cs" />
-    <Compile Include="GTMPVoicePlugin.cs" />
+    <Compile Include="VoicePlugin.cs" />
     <Compile Include="VoiceClient\VoiceClient.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -131,13 +141,13 @@
   <Import Project="../packages/UnmanagedExports.1.2.7/tools/RGiesecke.DllExport.targets" Condition="Exists('../packages/UnmanagedExports.1.2.7/tools/RGiesecke.DllExport.targets')" />
   <PropertyGroup>
     <PostBuildEvent>if "$(ConfigurationName)" == "Release" (
-@copy "$(TargetPath)" "$(SolutionDir)\PluginRelease\Current\plugins\GTMPVoice_win64.dll"
+@copy "$(TargetPath)" "$(SolutionDir)\PluginRelease\Current\plugins\PureVoice_win64.dll"
 "$(DevEnvDir)TextTransform.exe" -out "$(ProjectDir)../PluginRelease/Current/package.ini" "$(ProjectDir)BuildTools/package.tt"
 "$(DevEnvDir)TextTransform.exe" -out "$(ProjectDir)../PluginRelease/ziprelease.ps1" "$(ProjectDir)BuildTools/ziprelease.tt"
 @powershell -ExecutionPolicy Unrestricted -file "$(ProjectDir)../PluginRelease/ziprelease.ps1"
 )
 if "$(ConfigurationName)" == "Debug" (
-@copy "$(TargetPath)" "%25APPDATA%25\TS3Client\plugins\GTMPVoice_win64.dll"
+@copy "$(TargetPath)" "%25APPDATA%25\TS3Client\plugins\PureVoice_win64.dll"
 )
 </PostBuildEvent>
   </PropertyGroup>

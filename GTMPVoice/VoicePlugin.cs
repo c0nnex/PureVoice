@@ -11,9 +11,9 @@ using System.Threading;
 using System.Windows.Forms;
 using TeamSpeakPlugin;
 
-namespace GTMPVoice
+namespace PureVoice
 {
-    public class GTMPVoicePlugin
+    public class VoicePlugin
     {
         /// <summary>
         /// Create a plugin instance.
@@ -35,7 +35,7 @@ namespace GTMPVoice
         /// <summary>
         /// The plugin name.
         /// </summary>
-        public static String Name = "GT-MP TeamSpeak plugin";
+        public static String Name = "PureVoice TeamSpeak plugin";
 
         /// <summary>
         /// The plugin version.
@@ -55,7 +55,7 @@ namespace GTMPVoice
         /// <summary>
         /// Plugin description.
         /// </summary>
-        public static String Description = "GT-MP Teamspeak 3 Plugin\r\n* LiteNetLib (https://github.com/RevenantX/LiteNetLib)\r\n* Teamspeak C# Plugin API (https://github.com/kfarkasHU/TeamSpeak-plugin-API)";
+        public static String Description = "PureVoice Teamspeak 3 Plugin\r\n* LiteNetLib (https://github.com/RevenantX/LiteNetLib)\r\n* Teamspeak C# Plugin API (https://github.com/kfarkasHU/TeamSpeak-plugin-API)";
 
         public static String PluginID = "";
         private static Dictionary<PluginReturnCode, string> _pluginReturnCodes;

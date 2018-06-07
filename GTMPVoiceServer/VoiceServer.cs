@@ -1,5 +1,5 @@
-﻿using GTMPVoice.VoiceClient;
-using GTMPVoice.VoiceClient.Model;
+﻿using PureVoice.VoiceClient;
+using PureVoice.VoiceClient.Model;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using NLog;
@@ -10,7 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Timers;
 
-namespace GTMPVoice.Server
+namespace PureVoice.Server
 {
     public delegate void VoiceClientConnectedDelegate(string clientGUID, string teamspeakID, ushort teamspeakClientID, long connectionID, string clientName, bool micMuted, bool speakersMuted);
     public delegate void VoiceClientOutdatedDelegate(string clientGUID, Version hisVersion, Version ourVersion);

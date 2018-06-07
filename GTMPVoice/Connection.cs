@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using TeamSpeakPlugin;
 
-namespace GTMPVoice
+namespace PureVoice
 {
     internal class Connection : TeamSpeakBase
     {
@@ -285,7 +285,7 @@ namespace GTMPVoice
 
         internal void ExecuteMute(ushort clientId, bool isMute)
         {
-            GTMPVoicePlugin.Log("{0} {1}", isMute ? "Muting" : "Unmuting", clientId);
+            VoicePlugin.Log("{0} {1}", isMute ? "Muting" : "Unmuting", clientId);
             List<ushort> clients;
             clients = new List<ushort>();
             clients.Add(clientId);
@@ -339,7 +339,7 @@ namespace GTMPVoice
             {
                 if (!CanLeaveIngameChannel && !AllowedOutGameChannels.Contains(clientCurrentChannel))
                 {
-                    GTMPVoicePlugin.Log("Timer: Local Client left ingame channel while inGame");
+                    VoicePlugin.Log("Timer: Local Client left ingame channel while inGame");
                     LocalClient.JoinChannel(IngameChannel, IngameChannelPassword);
                 }
                 else
@@ -386,7 +386,7 @@ namespace GTMPVoice
         {
             if (clientID != LocalClientId)
                 return;
-            GTMPVoicePlugin.voiceClient.SendTalkStatusChanged(status == 1);
+            VoicePlugin.voiceClient.SendTalkStatusChanged(status == 1);
         }
 
     }

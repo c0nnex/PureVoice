@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace GTMPVoice.VoiceClient
+namespace PureVoice.VoiceClient
 {
     internal sealed class VoiceSerializer
     {

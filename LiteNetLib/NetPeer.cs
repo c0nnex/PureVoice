@@ -40,7 +40,7 @@ namespace LiteNetLib
 
         private DateTime _pingTimeStart;
         private int _timeSinceLastPacket;
-
+        private int _timeSinceLastPong;
         //Common            
         private readonly NetEndPoint _remoteEndPoint;
         private readonly NetManager _netManager;
@@ -696,6 +696,7 @@ namespace LiteNetLib
                     UpdateRoundTripTime(rtt);
                     NetUtils.DebugWrite("[PP]Ping: {0}", rtt);
                     _packetPool.Recycle(packet);
+                    _timeSinceLastPong = 0;
                     break;
 
                 //Process ack
@@ -761,7 +762,7 @@ namespace LiteNetLib
             }
         }
 
-        internal void SendRawData(NetPacket packet)
+        internal bool SendRawData(NetPacket packet)
         {
             //2 - merge byte + minimal packet size + datalen(ushort)
             if (_netManager.MergeEnabled &&
@@ -774,15 +775,19 @@ namespace LiteNetLib
                 _mergeCount++;
 
                 //DebugWriteForce("Merged: " + _mergePos + "/" + (_mtu - 2) + ", count: " + _mergeCount);
-                return;
+                return true;
             }
 
             NetUtils.DebugWrite(ConsoleColor.DarkYellow, "[P]SendingPacket: " + packet.Property);
-            _netManager.SendRaw(packet.RawData, 0, packet.Size, _remoteEndPoint);
+            if (_netManager.SendRaw(packet.RawData, 0, packet.Size, _remoteEndPoint))
+            {
 #if STATS_ENABLED
-            Statistics.PacketsSent++;
-            Statistics.BytesSent += (ulong)packet.Size;
+                Statistics.PacketsSent++;
+                Statistics.BytesSent += (ulong)packet.Size;
 #endif
+                return true;
+            }
+            return false;
         }
 
         /// <summary>
@@ -827,7 +832,7 @@ namespace LiteNetLib
 
         internal void Update(int deltaTime)
         {
-            if (_connectionState == ConnectionState.Connected && _timeSinceLastPacket > _netManager.DisconnectTimeout)
+            if (_connectionState == ConnectionState.Connected && ( _timeSinceLastPacket > _netManager.DisconnectTimeout || (_timeSinceLastPong >= _netManager.DisconnectTimeout)))
             {
                 NetUtils.DebugWrite(
                     "[UPDATE] Disconnect by timeout: {0} > {1}", 
@@ -852,8 +857,8 @@ namespace LiteNetLib
             {
                 return;
             }
-
             _timeSinceLastPacket += deltaTime;
+            _timeSinceLastPong += deltaTime;
             if (_connectionState == ConnectionState.InProgress)
             {
                 _connectTimer += deltaTime;
@@ -872,7 +877,12 @@ namespace LiteNetLib
                 }
                 return;
             }
-
+           
+            if (_timeSinceLastPong >= _netManager.DisconnectTimeout)
+            {
+                _netManager.DisconnectPeer(this, DisconnectReason.Timeout, 0, true, null, 0, 0);
+                return;
+            }
             //Send ping
             _pingSendTimer += deltaTime;
             if (_pingSendTimer >= _netManager.PingInterval)

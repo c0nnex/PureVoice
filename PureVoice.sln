@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GTMPVoice", "GTMPVoice\GTMPVoice.csproj", "{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoicePlugin", "GTMPVoice\PureVoicePlugin.csproj", "{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}"
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "LiteNetLib", "LiteNetLib\LiteNetLib.shproj", "{F6DCDF08-8192-41DE-9733-DC106150A441}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GTMPVoiceServer", "GTMPVoiceServer\GTMPVoiceServer.csproj", "{A64CC169-F2C9-4FF1-8D62-97BD2197556E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoiceServer", "GTMPVoiceServer\PureVoiceServer.csproj", "{A64CC169-F2C9-4FF1-8D62-97BD2197556E}"
 EndProject
-Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "GTMPVoiceShared", "GTMPVoiceShared\GTMPVoiceShared.shproj", "{501112A0-CCF2-4C78-BF33-61EEFDFD153F}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "PureVoiceShared", "GTMPVoiceShared\PureVoiceShared.shproj", "{501112A0-CCF2-4C78-BF33-61EEFDFD153F}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -21,6 +21,8 @@ Global
 		LiteNetLib\LiteNetLib.projitems*{f6dcdf08-8192-41de-9733-dc106150a441}*SharedItemsImports = 13
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug Network|Any CPU = Debug Network|Any CPU
+		Debug Network|x86 = Debug Network|x86
 		Debug X86|Any CPU = Debug X86|Any CPU
 		Debug X86|x86 = Debug X86|x86
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,10 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug Network|Any CPU.ActiveCfg = Debug Network|Any CPU
+		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug Network|Any CPU.Build.0 = Debug Network|Any CPU
+		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug Network|x86.ActiveCfg = Debug Network|Any CPU
+		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug Network|x86.Build.0 = Debug Network|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug X86|Any CPU.ActiveCfg = Debug X86|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug X86|Any CPU.Build.0 = Debug X86|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug X86|x86.ActiveCfg = Debug X86|Any CPU
@@ -47,6 +53,10 @@ Global
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Release|x86.ActiveCfg = Release|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Release|x86.Build.0 = Release|Any CPU
+		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug Network|Any CPU.ActiveCfg = Debug Network|Any CPU
+		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug Network|Any CPU.Build.0 = Debug Network|Any CPU
+		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug Network|x86.ActiveCfg = Debug Network|Any CPU
+		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug Network|x86.Build.0 = Debug Network|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug X86|Any CPU.ActiveCfg = Debug|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug X86|Any CPU.Build.0 = Debug|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug X86|x86.ActiveCfg = Debug|Any CPU

@@ -1,4 +1,4 @@
-﻿namespace GTMPVoice.VoiceClient.Model
+﻿namespace PureVoice.VoiceClient.Model
 {
     class VoicePaketChannel : IVoicePaketModel
     {

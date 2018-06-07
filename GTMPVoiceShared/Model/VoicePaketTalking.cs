@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace GTMPVoice.VoiceClient.Model
+namespace PureVoice.VoiceClient.Model
 {
     class VoicePaketTalking : IVoicePaketModel
     {

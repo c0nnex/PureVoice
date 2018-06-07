@@ -6,4 +6,4 @@
 <#@ output extension=".ps1" encoding="0" #>
 
 cd "<#=Path.Combine(Path.GetDirectoryName(Host.TemplateFile),"../../")#>PluginRelease\Current\"
-./zip.exe -r ..\GTMPVoice_<#= FileVersionInfo.GetVersionInfo(Path.Combine(Path.GetDirectoryName(Host.TemplateFile),"../../PluginRelease/Current/plugins/GTMPVoice_win64.dll")).ProductVersion #>.ts3_plugin package.ini plugins\GTMPVoice_win64.dll
+./zip.exe -r ..\PureVoice_<#= FileVersionInfo.GetVersionInfo(Path.Combine(Path.GetDirectoryName(Host.TemplateFile),"../../PluginRelease/Current/plugins/PureVoice_win64.dll")).ProductVersion #>.ts3_plugin package.ini plugins\PureVoice_win64.dll

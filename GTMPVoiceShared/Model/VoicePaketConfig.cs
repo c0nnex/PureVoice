@@ -1,7 +1,7 @@
 ﻿using LiteNetLib.Utils;
 using System;
 
-namespace GTMPVoice.VoiceClient.Model
+namespace PureVoice.VoiceClient.Model
 {
     class VoicePaketConfig : INetSerializable
     {

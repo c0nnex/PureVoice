@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace GTMPVoice
+namespace PureVoice
 {
     public enum VoiceIdentificationMethod
     {

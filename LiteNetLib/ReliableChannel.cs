@@ -10,13 +10,20 @@ namespace LiteNetLib
         {
             public NetPacket Packet;
             public long TimeStamp;
+            public long Resends;
             public bool Sended;
             public PendingPacket Next;
+            
             public void Clear()
             {
                 Next = null;
                 Packet = null;
                 Sended = false;
+                Resends = 0;
+            }
+            public override string ToString()
+            {
+                return $"PendignPacket {Packet.Property} sent:{Sended} resends:{Resends}";
             }
         }
 
@@ -220,11 +227,13 @@ namespace LiteNetLib
                         continue;
                     }
                     NetUtils.DebugWrite("[RC]Resend: {0} > {1}", (int)packetHoldTime, resendDelay);
+                    currentPacket.Resends++;
                 }
 
                 currentPacket.TimeStamp = currentTime;
                 currentPacket.Sended = true;
-                _peer.SendRawData(currentPacket.Packet);
+                if (!_peer.SendRawData(currentPacket.Packet))
+                    break;
             } while ((currentPacket = currentPacket.Next) != null);
             Monitor.Exit(_pendingPackets);
         }

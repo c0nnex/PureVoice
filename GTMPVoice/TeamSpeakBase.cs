@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TeamSpeakPlugin;
 
-namespace GTMPVoice
+namespace PureVoice
 {
     internal abstract class TeamSpeakBase
     {
@@ -24,7 +24,7 @@ namespace GTMPVoice
 
         internal static void Log(string str,params object[] args)
         {
-            GTMPVoicePlugin.Log(str, args);
+            VoicePlugin.Log(str, args);
         }
 
         internal bool Check(uint error, [CallerMemberName] string tag = null, [CallerFilePath] string code = null, [CallerLineNumber] int codeLine = 0) { return Check((Error)error,tag,code,codeLine); }

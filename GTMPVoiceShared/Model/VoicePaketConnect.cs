@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GTMPVoice.VoiceClient.Model
+namespace PureVoice.VoiceClient.Model
 {
     class VoicePaketConnectServer : IVoicePaketModel
     {
