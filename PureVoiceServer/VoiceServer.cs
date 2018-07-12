@@ -124,7 +124,7 @@ namespace PureVoice.Server
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (_server.PeersCount > 0)
-                Logger.Debug("Connected Clients: {0}/{1}/{2}", _server.GetPeersCount(ConnectionState.Connected), _server.PeersCount, _connectedPeers.Count);
+                Logger.Trace("Connected Clients: {0}/{1}/{2}", _server.GetPeersCount(ConnectionState.Connected), _server.PeersCount, _connectedPeers.Count);
 
             foreach (var kvp in _connectedPeers.ToList())
             {
@@ -169,7 +169,7 @@ namespace PureVoice.Server
         {
             if (_server != null && _server.IsRunning && _server.PeersCount > 0)
             {
-                Logger.Debug("Sending {0}", data);
+                Logger.Trace("Sending {0}", data);
                 _netPacketProcessor.SendKnown(_server, data, DeliveryMethod.ReliableOrdered);
             }
         }
@@ -219,7 +219,8 @@ namespace PureVoice.Server
                     List<BatchDataRecord> list = new List<BatchDataRecord>();
                     foreach (var item in data)
                     {
-                        list.Add(new BatchDataRecord() { ClientID = item.ClientID, Position = item.Position, VolumeModifier = item.VolumeModifier });
+                        list.Add(new BatchDataRecord() { ClientID = item.ClientID, Position = item.Position, VolumeModifier = item.VolumeModifier,
+                            ClientName = item.ClientID == 0 ? item.Name  : String.Empty });
                     }
                     p.Data = list.ToArray();
                     //Logger.Debug("SendUpdate {0} {1} Records => {2}",targetId, data.Count(),p.Data.Length);

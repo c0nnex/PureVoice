@@ -8,12 +8,12 @@ using System.Runtime.InteropServices;
 #if X86
 [assembly: AssemblyTitle("GT-MP Teamspeak Voice Plugin (32-Bit)")]
 #else
-[assembly: AssemblyTitle("GT-MP Teamspeak Voice Plugin (64-Bit)")]
+[assembly: AssemblyTitle("PureVoice Teamspeak Voice Plugin (64-Bit)")]
 #endif
 [assembly: AssemblyDescription("Provides TS3<->GT-MP linkage")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("GTMPVoice")]
+[assembly: AssemblyProduct("PureVoice")]
 [assembly: AssemblyCopyright("Copyright © 2018 c0nnex")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

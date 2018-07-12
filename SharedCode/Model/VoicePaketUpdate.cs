@@ -24,5 +24,6 @@ namespace PureVoice.VoiceClient.Model
         public ushort ClientID { get; set; }
         public TSVector Position { get; set; }
         public float VolumeModifier { get; set; }
+        public string ClientName { get; set; }
     }
 }

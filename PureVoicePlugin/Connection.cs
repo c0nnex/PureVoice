@@ -92,6 +92,17 @@ namespace PureVoice
             return retVal;
         }
 
+        public ushort GetClientId(string guid)
+        {
+            Client retVal = GetClientByGUID(guid);
+            if (retVal == null)
+            {
+                Log("GetClient {0} => NOT FOUND", guid);
+                return 0;
+            }
+            return retVal.ID;
+        }
+
         internal void Init()
         {
             if (!IsInitialized)

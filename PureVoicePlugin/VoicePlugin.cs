@@ -179,7 +179,7 @@ namespace PureVoice
             {
                 Debug.WriteLine(str);
                 if (_FunctionsSet)
-                    Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "GTMPVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
+                    Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
 
             }
             else
@@ -187,7 +187,7 @@ namespace PureVoice
                 str = String.Format(str, args);
                 Debug.WriteLine(str);
                 if (_FunctionsSet)
-                    Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "GTMPVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
+                    Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
 
             }
         }

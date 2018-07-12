@@ -23,7 +23,7 @@ namespace PureVoice.VoiceClient
         private VoicePaketConfig _configuration;
         private VoicePaketSetup _connectionInfo;
         private System.Timers.Timer _timer;
-        private DateTime _lastGTMPPing = DateTime.Now;
+        private DateTime _lastPureVoicePing = DateTime.Now;
         private bool _needConnection = false;
         public event EventHandler<VoiceClient> OnDisconnected;
         private bool _GotWarning = false;
@@ -89,7 +89,7 @@ namespace PureVoice.VoiceClient
             {
                 if (_needConnection)
                 {
-                    if (DateTime.Now - _lastGTMPPing > TimeSpan.FromSeconds(10))
+                    if (DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10))
                     {
                         _needConnection = false;
                         var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
@@ -161,7 +161,7 @@ namespace PureVoice.VoiceClient
         {
             try
             {
-                if (_needConnection && (DateTime.Now - _lastGTMPPing > TimeSpan.FromSeconds(10)))
+                if (_needConnection && (DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10)))
                 {
                     _needConnection = false;
                     var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
@@ -179,24 +179,24 @@ namespace PureVoice.VoiceClient
             }
         }
 
-        internal bool GTMPVoicePlugin_ConnectionEstablished(Connection e)
+        internal bool VoicePlugin_ConnectionEstablished(Connection e)
         {
             try
             {
                 if (_connectionInfo == null)
                 {
-                    VoicePlugin.Log("GTMPVoicePlugin_ConnectionEstablished no info ({0})", e.GUID);
+                    VoicePlugin.Log("ConnectionEstablished no info ({0})", e.GUID);
                     return false;
                 }
                 if (!e.IsInitialized)
                 {
-                    VoicePlugin.Log("GTMPVoicePlugin_ConnectionEstablished not initialized ({0})", e.GUID);
+                    VoicePlugin.Log("ConnectionEstablished not initialized ({0})", e.GUID);
                     return false;
                 }
                 if (e.GUID == _connectionInfo.ServerGUID)
                 {
                     if (e.IsVoiceEnabled)
-                    VoicePlugin.Log("GTMPVoicePlugin_ConnectionEstablished Gotcha! ({0})", e.GUID);
+                    VoicePlugin.Log("ConnectionEstablished Gotcha! ({0})", e.GUID);
                     e.UpdateSetup(_connectionInfo);
                     _netPacketProcessor.Send(Client, new VoicePaketConnectClient()
                     {
@@ -210,7 +210,7 @@ namespace PureVoice.VoiceClient
                 }
                 else
                 {
-                    VoicePlugin.Log("GTMPVoicePlugin_ConnectionEstablished wrong server ({0})", e.GUID);
+                    VoicePlugin.Log("ConnectionEstablished wrong server ({0})", e.GUID);
                 }
                 return true;
             }
@@ -266,7 +266,7 @@ namespace PureVoice.VoiceClient
                     VoicePlugin.Log("Refused v {1} from {0}", remoteEndPoint, voiceVersion);
                     return;
                 }
-                if (hello == "GTMPVOICECOMMAND")
+                if ((hello == "GTMPVOICECOMMAND") || (hello == "PUREVOICECOMMAND"))
                 {
                     VoicePlugin.Log("Command from {0}", remoteEndPoint);
                     if (IsConnected)
@@ -277,7 +277,7 @@ namespace PureVoice.VoiceClient
                     }
                     return;
                 }
-                if (hello != "GTMPVOICE")
+                if ((hello != "GTMPVOICE") && (hello != "PUREVOICE"))
                 {
                     VoicePlugin.Log("Invalid configuration from {0}", remoteEndPoint);
                     return;
@@ -285,7 +285,7 @@ namespace PureVoice.VoiceClient
                 _configuration = new VoicePaketConfig();
                 _configuration.Deserialize(reader);
 
-                _lastGTMPPing = DateTime.Now;
+                _lastPureVoicePing = DateTime.Now;
 
                 VoicePlugin.Log("Accept Configuration from {0}", remoteEndPoint);
                 if (IsConnected)
@@ -299,11 +299,11 @@ namespace PureVoice.VoiceClient
                     if (!_GotWarning)
                     {
                         _GotWarning = true;
-                        MessageBox.Show($"{VoicePlugin.Name} veraltet. Version {_configuration.ClientVersionRequired} wird benötigt. Bitte aktualisieren.", "GT-MP Voice Plugin Fehler");
+                        MessageBox.Show($"{VoicePlugin.Name} outdated. Version {_configuration.ClientVersionRequired} is required. Please update.", "PureVoice Plugin Outdated");
                     }
                     return;
                 }
-                _lastGTMPPing = DateTime.Now;
+                _lastPureVoicePing = DateTime.Now;
                 VoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
                 _needConnection = true;
                 StartServerConnection();
@@ -337,7 +337,7 @@ namespace PureVoice.VoiceClient
                 var con = VoicePlugin.GetConnection(args.ServerGUID);
                 if ((con != null) && con.IsInitialized && con.IsConnected)
                 {
-                    if (!GTMPVoicePlugin_ConnectionEstablished(con))
+                    if (!VoicePlugin_ConnectionEstablished(con))
                     {
                         VoicePlugin.Log("Disconnecting Peer (TS Server not ready)");
                         Disconnect();
@@ -392,8 +392,7 @@ namespace PureVoice.VoiceClient
                 var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
                 if (con == null)
                     return;
-                //GTMPVoicePlugin.Log("UpdatePosition {0}: {1} {2} {3}", args.PlayerName, args.Position, args.PositionIsRelative, args.VolumeModifier);
-                var cl = con.GetClient(args.PlayerName);
+                Client cl = con.GetClient(args.PlayerName);
                 if (cl == null)
                 {
                     VoicePlugin.Log("UpdatePosition {0}: {1} {2} {3} NOT FOUND", args.PlayerName, args.Position, args.PositionIsRelative, args.VolumeModifier);
@@ -441,9 +440,16 @@ namespace PureVoice.VoiceClient
                 {
                     data.Data.ForEach(d =>
                     {
-                        mute.Remove(d.ClientID);
-                        unmute.Add(d.ClientID);
-                        con.GetClient(d.ClientID)?.UpdatePosition(d.Position, d.VolumeModifier, false, false);
+                        if (d.ClientID == 0)
+                        {
+                            d.ClientID = con.GetClientId(d.ClientName);
+                        }
+                        if (d.ClientID != 0)
+                        {
+                            mute.Remove(d.ClientID);
+                            unmute.Add(d.ClientID);
+                            con.GetClient(d.ClientID)?.UpdatePosition(d.Position, d.VolumeModifier, false, false);
+                        }
                     });
                 }
                 if (mute.SetEquals(con._MutedClients) && unmute.SetEquals(con._UnmutedClients))
