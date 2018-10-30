@@ -2,7 +2,9 @@
 using PureVoice.VoiceClient.Model;
 using LiteNetLib;
 using LiteNetLib.Utils;
+#if !NETCORE
 using NLog;
+#endif
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,6 +20,15 @@ namespace PureVoice.Server
     public delegate void VoiceClientTalkingDelegate(long connectionId, bool isTalking);
     public delegate void VoiceClientMuteStatusChangedDelegate(long connectionId, bool isMuted);
     public delegate void VoiceClientCommandDelegate(long connectionId, string command, string data);
+
+    public enum LogLevel
+    {
+        TRACE,
+        DEBUG,
+        INFO,
+        WARN,
+        ERROR
+    }
 
     public class VoiceServer : INetEventListener, INetLogger, IDisposable
     {
@@ -113,13 +124,16 @@ namespace PureVoice.Server
             {
                 throw new InvalidOperationException("Starting VoiceServer failed");
             }
-            Logger.Debug($"VoiceServer started on port {port}");
+            Logger.Info($"VoiceServer started on port {port}");
             timer.Elapsed += Timer_Elapsed;
             timer.Interval = 5000;
             timer.Start();
         }
 
-
+        public static void SetMinLogLevel(LogLevel logLevel)
+        {
+            Logger?.SetMinLogLevel(logLevel);
+        }
 
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
@@ -470,7 +484,7 @@ namespace PureVoice.Server
                 Logger.Debug(str, args);
         }
 
-        #region IDisposable Support
+#region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -492,6 +506,6 @@ namespace PureVoice.Server
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
         }
-        #endregion
+#endregion
     }
 }

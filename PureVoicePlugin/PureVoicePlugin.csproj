@@ -102,6 +102,7 @@
     <Compile Include="TeamSpeak\TeamSpeakFunctions\Enums\PluginTypeEnum.cs" />
     <Compile Include="TeamSpeak\TeamSpeakFunctions\Enums\VirtualServerPropertiesEnum.cs" />
     <Compile Include="TeamSpeak\TeamSpeakFunctions\TeamSpeakFunctions.cs" />
+    <Compile Include="VoiceClient\WebListener.cs" />
     <Compile Include="VoicePlugin.cs" />
     <Compile Include="VoiceClient\VoiceClient.cs" />
   </ItemGroup>

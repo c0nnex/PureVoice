@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 #else
 [assembly: AssemblyTitle("PureVoice Teamspeak Voice Plugin (64-Bit)")]
 #endif
-[assembly: AssemblyDescription("Provides TS3<->GT-MP linkage")]
+[assembly: AssemblyDescription("Provides TS3 Voice linkage")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("PureVoice")]

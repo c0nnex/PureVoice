@@ -89,7 +89,7 @@ namespace PureVoice.VoiceClient
             {
                 if (_needConnection)
                 {
-                    if (DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10))
+                    if (IsConnected && DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10))
                     {
                         _needConnection = false;
                         var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
@@ -119,8 +119,46 @@ namespace PureVoice.VoiceClient
             evL.NetworkReceiveUnconnectedEvent += (ep, reader, messageType) => ServerListener_NetworkReceiveUnconnectedEvent(ep, reader, messageType);
             ServerListener = new NetManager(evL) { UnconnectedMessagesEnabled = true,UnsyncedEvents = true };
             ServerListener.Start(4239);
+            WebListener.ConnectionRequestReceived += WebListener_ConnectionRequestReceived;
+            WebListener.StartListen();
             VoicePlugin.Log("voiceClient waiting for Connectioninfo...");
             _ShutDown = false;
+        }
+
+        private void WebListener_ConnectionRequestReceived(object sender, VoicePaketConfig e)
+        {
+            try
+            {
+                if (_ShutDown)
+                    return;
+                _lastPureVoicePing = DateTime.Now;
+
+                VoicePlugin.Log("Accept Configuration via Web");
+                if (IsConnected)
+                {
+                    VoicePlugin.Log("Already connected");
+                    return;
+                }
+
+                if (e.ClientVersionRequired > VoicePlugin.PluginVersion)
+                {
+                    if (!_GotWarning)
+                    {
+                        _GotWarning = true;
+                        MessageBox.Show($"{VoicePlugin.Name} outdated. Version {e.ClientVersionRequired} is required. Please update.", "PureVoice Plugin Outdated");
+                    }
+                    return;
+                }
+                _lastPureVoicePing = DateTime.Now;
+                //VoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
+                _configuration = e;
+                _needConnection = true;
+                // StartServerConnection();
+            }
+            catch(Exception ex)
+            {
+                VoicePlugin.Log(ex.ToString());
+            }
         }
 
         public void Shutdown()
@@ -304,7 +342,7 @@ namespace PureVoice.VoiceClient
                     return;
                 }
                 _lastPureVoicePing = DateTime.Now;
-                VoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
+                //VoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
                 _needConnection = true;
                 StartServerConnection();
             }
