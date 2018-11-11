@@ -1,2 +1,6 @@
-# GTMPVoice
-GT-MP Teamspeak Voice Plugin
+# PureVoice
+A Teamspeak 3 VoiceCom Solution
+
+- Client Plugin
+- Server Interface Assembly
+
