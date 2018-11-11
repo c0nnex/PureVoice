@@ -129,12 +129,12 @@ namespace PureVoice.Server
             timer.Interval = 5000;
             timer.Start();
         }
-
+#if NETCORE
         public static void SetMinLogLevel(LogLevel logLevel)
         {
             Logger?.SetMinLogLevel(logLevel);
         }
-
+#endif
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (_server.PeersCount > 0)
