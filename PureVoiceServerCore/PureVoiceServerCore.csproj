@@ -8,6 +8,10 @@
     <DefineConstants>TRACE;RELEASE;NETCOREAPP2_0;NETCORE</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE;NETCOREAPP2_0;NETCORE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="..\PureVoiceServer\VoiceLocationInformation.cs" Link="VoiceLocationInformation.cs" />
     <Compile Include="..\PureVoiceServer\VoiceServer.cs" Link="VoiceServer.cs" />

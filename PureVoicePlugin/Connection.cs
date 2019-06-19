@@ -282,9 +282,12 @@ namespace PureVoice
 
         internal void DoMute(ushort clientId)
         {
-            _UnmutedClients.TryRemove(clientId);
-            if (_MutedClients.Add(clientId))
-                ExecuteMute(clientId, true);
+            if (clientId != LocalClientId)
+            {
+                _UnmutedClients.TryRemove(clientId);
+                if (_MutedClients.Add(clientId))
+                    ExecuteMute(clientId, true);
+            }
         }
 
         internal void DoUnmute(ushort clientId)
@@ -325,6 +328,7 @@ namespace PureVoice
             {
                 List<ushort> clients;
                 clients = new List<ushort>(clientIds);
+                clients.Remove(LocalClientId);
                 clients.Add(0);
                 Log("MutingList  {0}: {1}", clients.Count, string.Join(",", clients));
                 Check(Functions.requestMuteClients(ID, clients.ToArray(), ""));

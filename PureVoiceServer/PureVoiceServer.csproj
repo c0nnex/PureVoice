@@ -73,9 +73,8 @@
   <Import Project="..\SharedCode\PureVoiceShared.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>if exist "$(ProjectDir)after_$(ConfigurationName)_build.cmd" (
-@"$(ProjectDir)after_$(ConfigurationName)_build.cmd" "$(TargetDir)$(TargetName).*"
-)</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>
