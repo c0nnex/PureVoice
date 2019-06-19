@@ -11,7 +11,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoiceServer", "PureVoic
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "PureVoiceShared", "SharedCode\PureVoiceShared.shproj", "{501112A0-CCF2-4C78-BF33-61EEFDFD153F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoiceServerCore", "PureVoiceServerCore\PureVoiceServerCore.csproj", "{321ADAFF-0668-44F2-BFE9-F9B283AC30E2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PureVoiceServerCore", "PureVoiceServerCore\PureVoiceServerCore.csproj", "{321ADAFF-0668-44F2-BFE9-F9B283AC30E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PureVoiceTest", "PureVoiceTest\PureVoiceTest.csproj", "{91753D24-3432-4447-BAA5-385F3829C735}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
@@ -44,7 +46,6 @@ Global
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug X86|x86.ActiveCfg = Debug X86|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug X86|x86.Build.0 = Debug X86|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Debug|x86.Build.0 = Debug|Any CPU
 		{D2F89D4F-B405-4FBB-9D29-3563CB6BCE7D}.Release X86|Any CPU.ActiveCfg = Release X86|Any CPU
@@ -64,7 +65,6 @@ Global
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug X86|x86.ActiveCfg = Debug|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug X86|x86.Build.0 = Debug|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Debug|x86.Build.0 = Debug|Any CPU
 		{A64CC169-F2C9-4FF1-8D62-97BD2197556E}.Release X86|Any CPU.ActiveCfg = Release|Any CPU
@@ -95,6 +95,26 @@ Global
 		{321ADAFF-0668-44F2-BFE9-F9B283AC30E2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{321ADAFF-0668-44F2-BFE9-F9B283AC30E2}.Release|x86.ActiveCfg = Release|Any CPU
 		{321ADAFF-0668-44F2-BFE9-F9B283AC30E2}.Release|x86.Build.0 = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug Network|Any CPU.ActiveCfg = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug Network|Any CPU.Build.0 = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug Network|x86.ActiveCfg = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug Network|x86.Build.0 = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug X86|Any CPU.ActiveCfg = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug X86|Any CPU.Build.0 = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug X86|x86.ActiveCfg = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug X86|x86.Build.0 = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Debug|x86.Build.0 = Debug|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release X86|Any CPU.ActiveCfg = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release X86|Any CPU.Build.0 = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release X86|x86.ActiveCfg = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release X86|x86.Build.0 = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release|x86.ActiveCfg = Release|Any CPU
+		{91753D24-3432-4447-BAA5-385F3829C735}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
