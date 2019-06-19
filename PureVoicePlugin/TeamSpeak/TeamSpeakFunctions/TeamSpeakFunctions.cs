@@ -853,7 +853,8 @@ public delegate uint TS3Functions_banclient(ulong serverConnectionHandlerID, ush
 ///timeInSeconds: uint64->unsigned __int64
 ///banReason: char*
 ///returnCode: char*
-public delegate uint TS3Functions_banadd(ulong serverConnectionHandlerID, [In] [MarshalAs(UnmanagedType.LPStr)] string ipRegExp, [In] [MarshalAs(UnmanagedType.LPStr)] string nameRegexp, [In] [MarshalAs(UnmanagedType.LPStr)] string uniqueIdentity, ulong timeInSeconds, [In] [MarshalAs(UnmanagedType.LPStr)] string banReason, [In] [MarshalAs(UnmanagedType.LPStr)] string returnCode);
+public delegate uint TS3Functions_banadd(ulong serverConnectionHandlerID, [In] [MarshalAs(UnmanagedType.LPStr)] string ipRegExp, [In] [MarshalAs(UnmanagedType.LPStr)] string nameRegexp, [In] [MarshalAs(UnmanagedType.LPStr)] string uniqueIdentity, [In] [MarshalAs(UnmanagedType.LPStr)] string mytsID, ulong timeInSeconds, [In] [MarshalAs(UnmanagedType.LPStr)] string banReason, [In] [MarshalAs(UnmanagedType.LPStr)] string returnCode);
+
 
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64
@@ -877,7 +878,7 @@ public delegate uint TS3Functions_bandelall(ulong serverConnectionHandlerID, [In
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64
 ///returnCode: char*
-public delegate uint TS3Functions_requestBanList(ulong serverConnectionHandlerID, [In] [MarshalAs(UnmanagedType.LPStr)] string returnCode);
+public delegate uint TS3Functions_requestBanList(ulong serverConnectionHandlerID, ulong start, uint duration, [In] [MarshalAs(UnmanagedType.LPStr)] string returnCode);
 
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64

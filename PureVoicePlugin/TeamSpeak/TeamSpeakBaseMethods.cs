@@ -96,7 +96,11 @@ namespace TeamSpeakPlugin
         public static int ts3plugin_init()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+#if false
             return VoicePlugin.InitAsync().GetAwaiter().GetResult();
+#else
+            return VoicePlugin.InitAsync();
+#endif
         }
 
         /// <summary>
@@ -114,9 +118,9 @@ namespace TeamSpeakPlugin
         {
             VoicePlugin.RegisterPluginID(pluginStr);
         }
-        #endregion [ REQUIRED METHODS ]
+#endregion [ REQUIRED METHODS ]
 
-        #region [ USED METHODS ]
+#region [ USED METHODS ]
 
         /// <summary>
         /// When connection status changed.
@@ -953,7 +957,7 @@ namespace TeamSpeakPlugin
         /// <param name="numberOfEnforcements">???</param>
         /// <param name="lastNickName">Banned last nickname.</param>
         [DllExport]
-        public static void ts3plugin_onBanListEvent(ulong serverConnectionHandlerID, ulong banid, string ip, string name, string uid, ulong creationTime, ulong durationTime, string invokerName,
+        public static void ts3plugin_onBanListEvent(ulong serverConnectionHandlerID, ulong banid, string ip, string name, string uid, string myTSId, ulong creationTime, ulong durationTime, string invokerName,
                                       ulong invokercldbid, string invokeruid, string reason, int numberOfEnforcements, string lastNickName)
         {
             GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
@@ -966,7 +970,7 @@ namespace TeamSpeakPlugin
         }
 
         [DllExport]
-        public static void ts3plugin_onPluginCommandEvent(ulong serverConnectionHandlerID, string pluginName, string pluginCommand)
+        public static void ts3plugin_onPluginCommandEvent(ulong serverConnectionHandlerID, string pluginName, string pluginCommand, ushort invokerClientID, string invokerName, string invokerUniqueIdentity )
         {
             GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
 

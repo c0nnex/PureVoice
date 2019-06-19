@@ -10,4 +10,4 @@ Author=c0nnex
 Version=<#= FileVersionInfo.GetVersionInfo(Path.Combine(Path.GetDirectoryName(Host.TemplateFile),"../../PluginRelease/Current/plugins/PureVoice_win64.dll")).ProductVersion #>
 Platforms=win64
 Description="PureVoice Teamspeak Voice Plugin "
-Api=22
+Api=23
