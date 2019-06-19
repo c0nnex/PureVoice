@@ -68,7 +68,7 @@ namespace PureVoice
 
         private void ConditionalMute(ushort cl)
         {
-            if (!_UnmutedClients.Contains(cl))
+            if (cl != LocalClientId && !_UnmutedClients.Contains(cl))
                 _MutedClients.Add(cl);
         }
 
@@ -299,6 +299,8 @@ namespace PureVoice
 
         internal void ExecuteMute(ushort clientId, bool isMute)
         {
+            if (isMute && clientId == LocalClientId)
+                return;
             VoicePlugin.Log("{0} {1}", isMute ? "Muting" : "Unmuting", clientId);
             List<ushort> clients;
             clients = new List<ushort>();
@@ -341,7 +343,8 @@ namespace PureVoice
             {
                 for (int i = 0; i < clientIds.Length; i++)
                 {
-                    _MutedClients.Add(clientIds[i]);
+                    if (clientIds[i] != LocalClientId)
+                        _MutedClients.Add(clientIds[i]);
                 }
             }
         }
