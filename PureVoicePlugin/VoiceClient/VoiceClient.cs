@@ -495,6 +495,7 @@ namespace PureVoice.VoiceClient
                 VoicePlugin.Log("BatchUpdate {0}", data.Data.Length);
                 con._UnmutedClients = new ConcurrentHashSet<ushort>(unmute);
                 con._MutedClients = new ConcurrentHashSet<ushort>(mute);
+                con._MutedClients.TryRemove(con.LocalClientId);
                 con.DoMuteActions();
             }
             catch (Exception ex)
