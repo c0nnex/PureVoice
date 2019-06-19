@@ -122,9 +122,9 @@ namespace PureVoice.Server
 
             if (!_server.Start(port))
             {
-                throw new InvalidOperationException("Starting VoiceServer failed");
+                throw new InvalidOperationException("Starting PureVoice VoiceServer failed");
             }
-            Logger.Info($"VoiceServer started on port {port}");
+            Logger.Info($"PureVoice VoiceServer started on port {port}");
             timer.Elapsed += Timer_Elapsed;
             timer.Interval = 5000;
             timer.Start();
@@ -335,18 +335,18 @@ namespace PureVoice.Server
             connectPaket.Deserialize(request.Data);
             if (connectPaket.Secret != _secret)
             {
-                Logger.Warn("Unauthorized connect from {0} : Wrong secret", request.RemoteEndPoint);
+                Logger.Warn("Unauthorized connect from {0}/{1} : Wrong secret", request.RemoteEndPoint, connectPaket.ClientGUID);
                 request.Reject();
                 return;
             }
             if (connectPaket.Version < _requiredClientVersion)
             {
-                Logger.Warn("Unauthorized connect from {0} : Wrong Version {1}", request.RemoteEndPoint, connectPaket.Version);
+                Logger.Warn("Unauthorized connect from {0}/{1} : Wrong Version {2}", request.RemoteEndPoint, connectPaket.ClientGUID, connectPaket.Version);
                 request.Reject();
                 VoiceClientOutdated?.Invoke(connectPaket.ClientGUID, connectPaket.Version, _requiredClientVersion);
                 return;
             }
-            Logger.Debug("Connection accepted {0}", request.RemoteEndPoint);
+            Logger.Debug("Connection accepted {0}/{1}", request.RemoteEndPoint,connectPaket.ClientGUID);
             request.Accept();
         }
 

@@ -45,7 +45,7 @@ namespace PureVoice
         /// The API version.
         /// <para>Always check this, if error while loading plugin.</para>
         /// </summary>
-        public static int API_VERSION = 22;
+        public static int API_VERSION = 23;
 
         /// <summary>
         /// Author name.
@@ -64,7 +64,7 @@ namespace PureVoice
 #if false
         internal static async System.Threading.Tasks.Task<int> InitAsync()
 #else
-        internal static async System.Threading.Tasks.Task<int> InitAsync()
+        internal static int InitAsync()
 #endif
         {
             Log("Initializing {0}", PluginVersion);
