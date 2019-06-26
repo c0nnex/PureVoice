@@ -96,6 +96,7 @@ namespace PureVoice.VoiceClient
                 ctx.Response.ContentEncoding = Encoding.UTF8;
                 ctx.Response.ContentType = "application/text";
                 ctx.Response.ContentEncoding = Encoding.UTF8;
+                ctx.Response.AddHeader("Access-Control-Allow-Origin", "*");
                 ctx.Response.ContentLength64 = buf.Length;
                 ctx.Response.OutputStream.Write(buf, 0, buf.Length);
                 ctx.Response.Close();
