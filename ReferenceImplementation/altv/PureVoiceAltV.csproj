@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AltV.Net" Version="1.27.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="PureVoiceServerCore">
+      <HintPath>libs\PureVoiceServerCore.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
