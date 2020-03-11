@@ -33,13 +33,13 @@ namespace PureVoice.Server
     public class VoiceServer : INetEventListener, INetLogger, IDisposable
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static readonly Version _MinSupportedClientVersion = Version.Parse("0.2.840.625");
+        private static readonly Version _MinSupportedClientVersion = Version.Parse("0.2.1531.440");
 
         private NetManager _server;
         private readonly VoicePaketProcessor _netPacketProcessor = new VoicePaketProcessor();
 
         private readonly string _secret;
-        private readonly Version _requiredClientVersion = new Version(0, 0, 0, 0);
+        private readonly Version _requiredClientVersion = new Version(0, 2, 1531, 440);
 
         private readonly System.Timers.Timer timer = new System.Timers.Timer();
         private readonly int _port = 4244;
