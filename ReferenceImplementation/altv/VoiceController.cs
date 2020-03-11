@@ -75,9 +75,12 @@ namespace VoiceSupport
             _voiceServer.VoiceClientConnected += _voiceServer_VoiceClientConnected;
             _voiceServer.VoiceClientDisconnected += _voiceServer_VoiceClientDisconnected;
             _voiceServer.VoiceClientOutdated += _voiceServer_VoiceClientOutdated;
-            _voiceServer.VoiceClientTalking += _voiceServer_VoiceClientTalking;
             _voiceServer.VoiceClientMicrophoneStatusChanged += _voiceServer_VoiceClientMicrophoneStatusChanged;
             _voiceServer.VoiceClientSpeakersStatusChanged += _voiceServer_VoiceClientSpeakersStatusChanged;
+            if (VoiceEnableLipSync)
+            {
+                _voiceServer.VoiceClientTalking += _voiceServer_VoiceClientTalking;
+            }
 
             teamspeakTimer = new System.Timers.Timer(200);
             teamspeakTimer.AutoReset = true;

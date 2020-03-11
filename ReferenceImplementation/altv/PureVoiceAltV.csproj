@@ -5,6 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="purevoice\**" />
+    <EmbeddedResource Remove="purevoice\**" />
+    <None Remove="purevoice\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AltV.Net" Version="1.27.3" />
   </ItemGroup>
 
