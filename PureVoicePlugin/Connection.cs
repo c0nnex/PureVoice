@@ -83,7 +83,7 @@ namespace PureVoice
         }
 
         public Client GetClient(string guid)
-        { 
+        {
             Client retVal = GetClientByGUID(guid);
             if (retVal == null)
             {
@@ -105,27 +105,36 @@ namespace PureVoice
 
         internal void Init()
         {
-            if (!IsInitialized)
+            try
             {
-                Functions.getClientID(ID, ref LocalClientId);
-                var localClient = GetClient(LocalClientId);
-                localClient.IsLocalClient = true;
-                localClient.Update();
-                LocalClient = localClient;
-                LocalClientName = localClient.Name;
-                Log("Local client id {0}", LocalClientId);
+                if (!IsInitialized && Status == ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED)
+                {
+                    Log("INIT");
+                    Functions.getClientID(ID, ref LocalClientId);
+                    var localClient = GetClient(LocalClientId);
+                    localClient.IsLocalClient = true;
+                    localClient.Update();
+                    LocalClient = localClient;
+                    LocalClientName = localClient.Name;
+                    Log("Local client id {0}", LocalClientId);
 
-                IntPtr retVal = IntPtr.Zero;
-                Functions.getClientList(ID, ref retVal);
-                var newClients = TeamSpeakBase.ReadShortIDList<Client>(retVal, GetClient);
-                Log($"{newClients.Count} Clients");
-                newClients.ForEach(cl => cl.Update());
-                var cu = newClients.Select(cl => cl.ID).ToArray();
-                Log($"{cu.Length} Unmute Clients");
-                DoUnmuteList(cu);
-                LocalClient.UpdateChannel();
-                Functions.systemset3DListenerAttributes(ID, new TSVector(), new TSVector(), new TSVector());
-                IsInitialized = true;
+                    IntPtr retVal = IntPtr.Zero;
+                    Functions.getClientList(ID, ref retVal);
+                    var newClients = TeamSpeakBase.ReadShortIDList<Client>(retVal, GetClient);
+                    Log($"{newClients.Count} Clients");
+                    newClients.ForEach(cl => cl.Update());
+                    var cu = newClients.Select(cl => cl.ID).ToArray();
+                    Log($"{cu.Length} Unmute Clients");
+                    DoUnmuteList(cu);
+                    LocalClient.UpdateChannel();
+                    Functions.systemset3DListenerAttributes(ID, new TSVector(), new TSVector(), new TSVector());
+                    IsInitialized = true;
+                    Log("ENDINIT");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex.ToString());
             }
         }
 
@@ -156,7 +165,17 @@ namespace PureVoice
 
         public void Update()
         {
-            GUID = GetServerVarString(VirtualServerProperties.VIRTUALSERVER_UNIQUE_IDENTIFIER);
+            try
+            {
+                Log("UPDATE");
+                GUID = GetServerVarString(VirtualServerProperties.VIRTUALSERVER_UNIQUE_IDENTIFIER);
+                Log("ENDUPDATE");
+            }
+            catch (Exception ex)
+            {
+                Log(ex.ToString());
+            }
+
         }
 
         public string GetServerVarString(VirtualServerProperties flag)
@@ -184,20 +203,20 @@ namespace PureVoice
 
         internal void ConnectVoiceServer(string myName)
         {
-                IsVoiceEnabled = true;
-                _MutedClients.Clear();
-                _UnmutedClients.Clear();
+            IsVoiceEnabled = true;
+            _MutedClients.Clear();
+            _UnmutedClients.Clear();
 
-                var cls = ClientMap.Values.Where(cl => cl.ID != LocalClientId && cl.ChannelID == IngameChannel).Select(cl => cl.ID).ToArray();
-                _MutedClients = new ConcurrentHashSet<ushort>(cls);
-                DoMuteList(cls);
-                _MuteTimer.Start();
-                var c = GetClient(LocalClientId);
-                if (c != null)
-                {
-                    c.JoinChannel(IngameChannel, IngameChannelPassword);
-                    c.SetNickName(myName);
-                }
+            var cls = ClientMap.Values.Where(cl => cl.ID != LocalClientId && cl.ChannelID == IngameChannel).Select(cl => cl.ID).ToArray();
+            _MutedClients = new ConcurrentHashSet<ushort>(cls);
+            DoMuteList(cls);
+            _MuteTimer.Start();
+            var c = GetClient(LocalClientId);
+            if (c != null)
+            {
+                c.JoinChannel(IngameChannel, IngameChannelPassword);
+                c.SetNickName(myName);
+            }
         }
 
         internal Client GetKnownClient(ushort clientID)
@@ -219,7 +238,7 @@ namespace PureVoice
                 _UnmutedClients.Clear();
                 SwitchBack();
             }
-            
+
         }
 
         internal void UnmuteAll()

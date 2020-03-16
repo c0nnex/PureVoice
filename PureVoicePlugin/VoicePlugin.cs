@@ -200,14 +200,19 @@ namespace PureVoice
 
         internal static Connection GetConnection(ulong id)
         {
-            return Connections.GetOrAdd(id, _ => new Connection(id));
+            var con = Connections.GetOrAdd(id, _ => new Connection(id));
+            con.Init();
+            return con;
         }
 
         internal static Connection GetConnection(string guid)
         {
-            return Connections.Values.FirstOrDefault(c => c.GUID == guid);
+            var con = Connections.Values.FirstOrDefault(c => c.GUID == guid);
+            con.Init();
+            return con;
         }
 
+        internal static Connection GetFirstConnection() => Connections.Values.FirstOrDefault(c => c.IsConnected && c.IsInitialized);
         internal static void OnConnectionStatusChanged(ulong serverConnectionHandlerID, ConnectionStatusEnum newStatus, uint errorNumber)
         {
             if (newStatus == ConnectionStatusEnum.STATUS_DISCONNECTED)
@@ -230,7 +235,7 @@ namespace PureVoice
                 case ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED:
                     {
                         con.Update();
-                        con.DelayedCall(1000, (c) => c.Init());
+                        //con.DelayedCall(1000, (c) => c.Init());
                     }
                     break;
                 default:

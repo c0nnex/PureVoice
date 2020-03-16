@@ -118,9 +118,9 @@ namespace TeamSpeakPlugin
         {
             VoicePlugin.RegisterPluginID(pluginStr);
         }
-#endregion [ REQUIRED METHODS ]
+        #endregion [ REQUIRED METHODS ]
 
-#region [ USED METHODS ]
+        #region [ USED METHODS ]
 
         /// <summary>
         /// When connection status changed.
@@ -131,8 +131,16 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onConnectStatusChangeEvent(ulong serverConnectionHandlerID, int newStatus, uint errorNumber)
         {
-            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-            VoicePlugin.OnConnectionStatusChanged(serverConnectionHandlerID, (ConnectionStatusEnum)newStatus, errorNumber);
+            try
+            {
+                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                VoicePlugin.OnConnectionStatusChanged(serverConnectionHandlerID, (ConnectionStatusEnum)newStatus, errorNumber);
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
+
         }
 
         /// <summary>
@@ -146,8 +154,15 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onUpdateClientEvent(ulong serverConnectionHandlerID, ushort clientID, ushort invokerID, string invokerName, string invokerUniqueIdentifier)
         {
-            VoicePlugin.VerboseLog("{0} {1}",MethodInfo.GetCurrentMethod().Name,clientID);
-            VoicePlugin.GetConnection(serverConnectionHandlerID).GetKnownClient(clientID)?.Update();
+            try
+            {
+                VoicePlugin.VerboseLog("{0} {1}", MethodInfo.GetCurrentMethod().Name, clientID);
+                VoicePlugin.GetConnection(serverConnectionHandlerID)?.GetKnownClient(clientID)?.Update();
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
         }
 
         /// <summary>
@@ -162,58 +177,101 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientMoveEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, string moveMessage)
         {
-            VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
-            if (newChannelID == 0) // Someone Disconnected
+            try
             {
-                VoicePlugin.GetConnection(serverConnectionHandlerID).RemoveClient(clientID);
-                return;
+                VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+                if (newChannelID == 0) // Someone Disconnected
+                {
+                    VoicePlugin.GetConnection(serverConnectionHandlerID).RemoveClient(clientID);
+                    return;
+                }
+                var cn = VoicePlugin.GetConnection(serverConnectionHandlerID);
+                cn.Init();
+                var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
+                cl.OnChannelChanged(newChannelID);
             }
-            var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
-            cl.OnChannelChanged(newChannelID);
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
+
         }
 
         [DllExport]
         public static void ts3plugin_onClientMoveMovedEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, ushort moverID, string moverName, string moverUniqueIdentifier, string moveMessage)
         {
-            VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
-            var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
-            if (oldChannelID == 0) // New User connected
-                cl.Update();
-            cl.OnChannelChanged(newChannelID);
+            try
+            {
+                VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+                var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
+                if (oldChannelID == 0) // New User connected
+                    cl.Update();
+                cl.OnChannelChanged(newChannelID);
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
+
         }
 
         [DllExport]
         public static void ts3plugin_onClientMoveTimeoutEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, string timeoutMessage)
         {
-            VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
-            VoicePlugin.GetConnection(serverConnectionHandlerID).GetKnownClient(clientID)?.OnChannelChanged(newChannelID); 
+            try
+            {
+                VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+                VoicePlugin.GetConnection(serverConnectionHandlerID).GetKnownClient(clientID)?.OnChannelChanged(newChannelID);
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
+
         }
 
         [DllExport]
         public static int ts3plugin_onServerErrorEvent(ulong serverConnectionHandlerID, string errorMessage, uint error, string returnCode, string extraMessage)
         {
-            if (!string.IsNullOrEmpty(returnCode))
+            try
             {
-                if (error != 0)
+                if (!string.IsNullOrEmpty(returnCode))
                 {
-                    VoicePlugin.Log("ERROR: {0} ({1} {2} {3})", errorMessage, error, returnCode, extraMessage);
-                    var rCode = VoicePlugin.ReturnCodeToPluginReturnCode(returnCode);
-                    if (rCode == PluginReturnCode.JOINCHANNEL)
+                    if (error != 0)
                     {
-                        if (error != 770)
-                            VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient.JoinDefaultChannel();
+                        VoicePlugin.Log("ERROR: {0} ({1} {2} {3})", errorMessage, error, returnCode, extraMessage);
+                        var rCode = VoicePlugin.ReturnCodeToPluginReturnCode(returnCode);
+                        if (rCode == PluginReturnCode.JOINCHANNEL)
+                        {
+                            if (error != 770)
+                                VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient.JoinDefaultChannel();
+                        }
                     }
+                    return 1;
                 }
-                return 1;
+                return 0;
             }
-            return 0;
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                return 0;
+            }
+
         }
 
         [DllExport]
         public static void ts3plugin_onTalkStatusChangeEvent(ulong serverConnectionHandlerID, int status, int isReceivedWhisper, ushort clientID)
         {
-           // GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-            VoicePlugin.GetConnection(serverConnectionHandlerID).ClientTalkStatusChanged(clientID, status, isReceivedWhisper);
+            try
+            {
+                // GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                VoicePlugin.GetConnection(serverConnectionHandlerID).ClientTalkStatusChanged(clientID, status, isReceivedWhisper);
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
+
         }
 
         /// <summary>
@@ -226,8 +284,16 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientDisplayNameChanged(ulong serverConnectionHandlerID, ushort clientID, string displayName, string uniqueClientIdentifier)
         {
-            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-            VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).SetName(displayName);
+            try
+            {
+                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).SetName(displayName);
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
+
         }
 
         /// <summary>
@@ -240,8 +306,16 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientSelfVariableUpdateEvent(ulong serverConnectionHandlerID, int flag, string oldValue, string newValue)
         {
-            VoicePlugin.VerboseLog("{0} {1} o:{2} n:{3}",MethodInfo.GetCurrentMethod().Name,(ClientProperty)flag,oldValue,newValue);
-            VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient?.OnSelfVariableChanged((ClientProperty)flag, oldValue, newValue);
+            try
+            {
+                VoicePlugin.VerboseLog("{0} {1} o:{2} n:{3}", MethodInfo.GetCurrentMethod().Name, (ClientProperty)flag, oldValue, newValue);
+                VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient?.OnSelfVariableChanged((ClientProperty)flag, oldValue, newValue);
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+            }
+
         }
 
         #endregion

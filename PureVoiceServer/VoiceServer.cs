@@ -33,13 +33,13 @@ namespace PureVoice.Server
     public class VoiceServer : INetEventListener, INetLogger, IDisposable
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
-        private static readonly Version _MinSupportedClientVersion = Version.Parse("0.2.1531.440");
+        private static readonly Version _MinSupportedClientVersion = Version.Parse("0.2.840.625");
 
         private NetManager _server;
         private readonly VoicePaketProcessor _netPacketProcessor = new VoicePaketProcessor();
 
         private readonly string _secret;
-        private readonly Version _requiredClientVersion = new Version(0, 2, 1531, 440);
+        private readonly Version _requiredClientVersion = new Version(0, 0, 0, 0);
 
         private readonly System.Timers.Timer timer = new System.Timers.Timer();
         private readonly int _port = 4244;
@@ -137,7 +137,9 @@ namespace PureVoice.Server
 #endif
         private void Timer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            if (_server.PeersCount > 0)
+            if (_server == null)
+                return;
+            if ((_server != null) && (_server.PeersCount > 0))
                 Logger.Trace("Connected Clients: {0}/{1}/{2}", _server.GetPeersCount(ConnectionState.Connected), _server.PeersCount, _connectedPeers.Count);
 
             foreach (var kvp in _connectedPeers.ToList())
@@ -155,13 +157,14 @@ namespace PureVoice.Server
                     Logger.Debug($"{peer.EndPoint} {peer.Ping} => {peer.PacketsCountInReliableOrderedQueue} queuesize exceeded disconnecting");
                     VoiceClientDisconnected?.Invoke(peer.ConnectId);
                     _connectedPeers.TryRemove(peer.ConnectId, out var unused);
-                    _server.DisconnectPeerForce(peer);
+                    _server?.DisconnectPeerForce(peer);
                 }
             }
         }
 
         public void Stop()
         {
+            timer.Stop();
             if (_server != null)
             {
                 _server.DisconnectAll();
@@ -237,7 +240,7 @@ namespace PureVoice.Server
                             ClientName = item.ClientID == 0 ? item.Name  : String.Empty });
                     }
                     p.Data = list.ToArray();
-                    //Logger.Debug("SendUpdate {0} {1} Records => {2}",targetId, data.Count(),p.Data.Length);
+                    //Logger.Trace("SendUpdate {0} {1} Records => {2}",targetId, data.Count(),p.Data.Length);
                     SendTo(peer, p, DeliveryMethod.ReliableOrdered);
                 }
             }

@@ -86,13 +86,22 @@ namespace PureVoice.VoiceClient
                             break;
                     }
                 }
+                var replyText = "OK";
                 switch (ctx.Request.Url.LocalPath)
                 {
                     case "/CONNECT":
                         ConnectionRequestReceived?.Invoke(null, cfg);
                         break;
+                    case "/IDENTIFY":
+                        {
+                            var c = VoicePlugin.GetConnection(cfg.ServerSecret);
+                            if (c == null)
+                                break;
+                            replyText = "OK<script>alt.emit(\"j_PureVoiceConnect\",\""+c.LocalClient.GUID+"\",\""+VoicePlugin.PluginVersion+"\");</script>";
+                            break;
+                        }
                 }
-                var buf = Encoding.UTF8.GetBytes("OK");
+                var buf = Encoding.UTF8.GetBytes(replyText);
                 ctx.Response.ContentEncoding = Encoding.UTF8;
                 ctx.Response.ContentType = "text/html";
                 ctx.Response.ContentEncoding = Encoding.UTF8;
