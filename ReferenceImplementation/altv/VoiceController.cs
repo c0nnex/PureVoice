@@ -354,7 +354,7 @@ namespace VoiceSupport
 
             public AltVPlayerList()
             {
-                AllPlayers = Alt.GetAllPlayers().ToList();
+                AllPlayers = Alt.Server.GetPlayers().ToList();
                 allRefs = new List<PlayerRef>();
                 AllPlayers.ForEach(p => { allRefs.Add(new PlayerRef(p)); });
             }
