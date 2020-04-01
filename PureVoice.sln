@@ -30,6 +30,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AltV", "AltV", "{52E1F7BA-0
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		LiteNetLib\LiteNetLib.projitems*{321adaff-0668-44f2-bfe9-f9b283ac30e2}*SharedItemsImports = 5
+		SharedCode\PureVoiceShared.projitems*{321adaff-0668-44f2-bfe9-f9b283ac30e2}*SharedItemsImports = 5
 		SharedCode\PureVoiceShared.projitems*{501112a0-ccf2-4c78-bf33-61eefdfd153f}*SharedItemsImports = 13
 		LiteNetLib\LiteNetLib.projitems*{a64cc169-f2c9-4ff1-8d62-97bd2197556e}*SharedItemsImports = 4
 		SharedCode\PureVoiceShared.projitems*{a64cc169-f2c9-4ff1-8d62-97bd2197556e}*SharedItemsImports = 4

@@ -110,7 +110,7 @@ namespace PureVoice
                 if (!IsInitialized && Status == ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED)
                 {
                     Log("INIT");
-                    Functions.getClientID(ID, ref LocalClientId);
+                    Check(Functions.getClientID(ID, ref LocalClientId));
                     var localClient = GetClient(LocalClientId);
                     localClient.IsLocalClient = true;
                     localClient.Update();
@@ -119,7 +119,7 @@ namespace PureVoice
                     Log("Local client id {0}", LocalClientId);
 
                     IntPtr retVal = IntPtr.Zero;
-                    Functions.getClientList(ID, ref retVal);
+                    Check(Functions.getClientList(ID, ref retVal));
                     var newClients = TeamSpeakBase.ReadShortIDList<Client>(retVal, GetClient);
                     Log($"{newClients.Count} Clients");
                     newClients.ForEach(cl => cl.Update());
@@ -127,7 +127,7 @@ namespace PureVoice
                     Log($"{cu.Length} Unmute Clients");
                     DoUnmuteList(cu);
                     LocalClient.UpdateChannel();
-                    Functions.systemset3DListenerAttributes(ID, new TSVector(), new TSVector(), new TSVector());
+                    Check(Functions.systemset3DListenerAttributes(ID, new TSVector(), new TSVector(), new TSVector()));
                     IsInitialized = true;
                     Log("ENDINIT");
                 }

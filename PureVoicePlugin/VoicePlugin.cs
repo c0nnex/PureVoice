@@ -55,7 +55,7 @@ namespace PureVoice
         /// <summary>
         /// Plugin description.
         /// </summary>
-        public static String Description = "PureVoice Teamspeak 3 Plugin\r\n* LiteNetLib (https://github.com/RevenantX/LiteNetLib)\r\n* Teamspeak C# Plugin API (https://github.com/kfarkasHU/TeamSpeak-plugin-API)";
+        public static String Description = "PureVoice Teamspeak 3 Plugin";
 
         public static String PluginID = "";
         private static Dictionary<PluginReturnCode, string> _pluginReturnCodes;
@@ -166,7 +166,7 @@ namespace PureVoice
         }
 
 
-        [Conditional("DEBUG")]
+       // [Conditional("DEBUG")]
         internal static void VerboseLog(string str, params object[] args)
         {
             Log(str, args);
@@ -177,7 +177,7 @@ namespace PureVoice
         {
             if (args == null || args.Length == 0)
             {
-                Debug.WriteLine(str);
+                Trace.WriteLine(str);
                 if (_FunctionsSet)
                     Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
 
@@ -185,7 +185,7 @@ namespace PureVoice
             else
             {
                 str = String.Format(str, args);
-                Debug.WriteLine(str);
+                Trace.WriteLine(str);
                 if (_FunctionsSet)
                     Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
 
@@ -196,6 +196,11 @@ namespace PureVoice
         {
             Functions = functionsFromTeamSpeak;
             _FunctionsSet = true;
+        }
+
+        internal static bool HasConnection(ulong id)
+        {
+            return Connections.ContainsKey(id);
         }
 
         internal static Connection GetConnection(ulong id)

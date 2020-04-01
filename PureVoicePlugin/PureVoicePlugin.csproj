@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PureVoice</RootNamespace>
     <AssemblyName>PureVoice</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -32,6 +33,8 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x64</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <BaseAddress>4194304</BaseAddress>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug X86|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
@@ -146,6 +149,7 @@
 "$(DevEnvDir)TextTransform.exe" -out "$(ProjectDir)../PluginRelease/Current/package.ini" "$(ProjectDir)BuildTools/package.tt"
 "$(DevEnvDir)TextTransform.exe" -out "$(ProjectDir)../PluginRelease/ziprelease.ps1" "$(ProjectDir)BuildTools/ziprelease.tt"
 @powershell -ExecutionPolicy Unrestricted -file "$(ProjectDir)../PluginRelease/ziprelease.ps1"
+@copy "$(TargetPath)" "%25APPDATA%25\TS3Client\plugins\PureVoice_win64.dll"
 )
 if "$(ConfigurationName)" == "Debug" (
 @copy "$(TargetPath)" "%25APPDATA%25\TS3Client\plugins\PureVoice_win64.dll"

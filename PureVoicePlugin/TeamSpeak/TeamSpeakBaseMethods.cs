@@ -78,7 +78,7 @@ namespace TeamSpeakPlugin
         {
             try
             {
-                Debug.WriteLine("SetFunctionPointers");
+                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
                 VoicePlugin.SetFunctionPointer(functionsFromTeamSpeak);
                 TeamSpeakBase.SetFunctionPointer(functionsFromTeamSpeak);
             }
@@ -116,10 +116,24 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_registerPluginID(string pluginStr)
         {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             VoicePlugin.RegisterPluginID(pluginStr);
         }
         #endregion [ REQUIRED METHODS ]
 
+        [DllExport]
+        public static int ts3plugin_offersConfigure()
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            /*
+             * Return values:
+             * PLUGIN_OFFERS_NO_CONFIGURE         - Plugin does not implement ts3plugin_configure
+             * PLUGIN_OFFERS_CONFIGURE_NEW_THREAD - Plugin does implement ts3plugin_configure and requests to run this function in an own thread
+             * PLUGIN_OFFERS_CONFIGURE_QT_THREAD  - Plugin does implement ts3plugin_configure and requests to run this function in the Qt GUI thread
+             */
+            return 0;  /* In this case ts3plugin_configure does not need to be implemented */
+        }
+#if true
         #region [ USED METHODS ]
 
         /// <summary>
@@ -157,7 +171,8 @@ namespace TeamSpeakPlugin
             try
             {
                 VoicePlugin.VerboseLog("{0} {1}", MethodInfo.GetCurrentMethod().Name, clientID);
-                VoicePlugin.GetConnection(serverConnectionHandlerID)?.GetKnownClient(clientID)?.Update();
+                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    VoicePlugin.GetConnection(serverConnectionHandlerID)?.GetKnownClient(clientID)?.Update();
             }
             catch (Exception ex)
             {
@@ -180,6 +195,8 @@ namespace TeamSpeakPlugin
             try
             {
                 VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+                if (!VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    return;
                 if (newChannelID == 0) // Someone Disconnected
                 {
                     VoicePlugin.GetConnection(serverConnectionHandlerID).RemoveClient(clientID);
@@ -203,6 +220,8 @@ namespace TeamSpeakPlugin
             try
             {
                 VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+                if (!VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    return;
                 var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
                 if (oldChannelID == 0) // New User connected
                     cl.Update();
@@ -221,7 +240,8 @@ namespace TeamSpeakPlugin
             try
             {
                 VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
-                VoicePlugin.GetConnection(serverConnectionHandlerID).GetKnownClient(clientID)?.OnChannelChanged(newChannelID);
+                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    VoicePlugin.GetConnection(serverConnectionHandlerID).GetKnownClient(clientID)?.OnChannelChanged(newChannelID);
             }
             catch (Exception ex)
             {
@@ -235,6 +255,7 @@ namespace TeamSpeakPlugin
         {
             try
             {
+                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
                 if (!string.IsNullOrEmpty(returnCode))
                 {
                     if (error != 0)
@@ -264,8 +285,10 @@ namespace TeamSpeakPlugin
         {
             try
             {
-                // GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                VoicePlugin.GetConnection(serverConnectionHandlerID).ClientTalkStatusChanged(clientID, status, isReceivedWhisper);
+                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                // VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    VoicePlugin.GetConnection(serverConnectionHandlerID).ClientTalkStatusChanged(clientID, status, isReceivedWhisper);
             }
             catch (Exception ex)
             {
@@ -287,7 +310,8 @@ namespace TeamSpeakPlugin
             try
             {
                 VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).SetName(displayName);
+                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).SetName(displayName);
             }
             catch (Exception ex)
             {
@@ -309,7 +333,8 @@ namespace TeamSpeakPlugin
             try
             {
                 VoicePlugin.VerboseLog("{0} {1} o:{2} n:{3}", MethodInfo.GetCurrentMethod().Name, (ClientProperty)flag, oldValue, newValue);
-                VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient?.OnSelfVariableChanged((ClientProperty)flag, oldValue, newValue);
+                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient?.OnSelfVariableChanged((ClientProperty)flag, oldValue, newValue);
             }
             catch (Exception ex)
             {
@@ -319,6 +344,8 @@ namespace TeamSpeakPlugin
         }
 
         #endregion
+
+#endif
 #if DEBUG_TS3 || false
         #region [ ACTION METHODS ]
 
@@ -345,7 +372,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static uint ts3plugin_onTextMessageEvent(ulong serverConnectionHandlerID, MessageTarget targetMode, ushort toID, ushort fromID, string fromName, string fromUniqueIdentifier, string message, bool ffIgnored)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             return 0;
         }
 
@@ -356,7 +383,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static uint ts3plugin_onPrivateTextMessageEvent(ulong serverConnectionHandlerID, MessageTarget targetMode, ushort toID, ushort fromID, string fromName, string fromUniqueIdentifier, string message, bool ffIgnored)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             // In here we knows it is a private message.
             return 0;
         }
@@ -380,7 +407,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientKickFromChannelEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, ushort kickerID, string kickerName, string kickerUniqueIdentifier, string kickMessage)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
 
         }
 
@@ -399,7 +426,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientKickFromServerEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, ushort kickerID, string kickerName, string kickerUniqueIdentifier, string kickMessage)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -418,7 +445,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientBanFromServerEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, ushort kickerID, string kickerName, string kickerUniqueIdentifier, ulong time, string kickMessage)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         #endregion [ KICKS AND BANS ]
@@ -434,7 +461,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onNewChannelEvent(ulong serverConnectionHandlerID, ulong channelID, ulong channelParentID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -449,7 +476,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onNewChannelCreatedEvent(ulong serverConnectionHandlerID, ulong channelID, ulong channelParentID, ushort invokerID, string invokerName, string invokerUniqueIdentifier)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -463,7 +490,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onDelChannelEvent(ulong serverConnectionHandlerID, ulong channelID, ushort invokerID, string invokerName, string invokerUniqueIdentifier)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -478,7 +505,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onChannelMoveEvent(ulong serverConnectionHandlerID, ulong channelID, ulong newChannelParentID, ushort invokerID, string invokerName, string invokerUniqueIdentifier)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -489,7 +516,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onUpdateChannelEvent(ulong serverConnectionHandlerID, ulong channelID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -503,7 +530,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onUpdateChannelEditedEvent(ulong serverConnectionHandlerID, ulong channelID, ushort invokerID, string invokerName, string invokerUniqueIdentifier)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         #endregion [ CHANNEL CREATE AND EDIT ]
@@ -514,26 +541,20 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientMoveSubscriptionEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-        }
-
-        [DllExport]
-        public static void ts3plugin_onClientMoveTimeoutEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, string timeoutMessage)
-        {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
 
         [DllExport]
         public static void ts3plugin_onClientIDsEvent(ulong serverConnectionHandlerID, string uniqueClientIdentifier, ushort clientID, string clientName)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onClientIDsFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -546,13 +567,13 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onServerEditedEvent(ulong serverConnectionHandlerID, ushort editerID, string editerName, string editerUniqueIdentifier)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerUpdatedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
 
@@ -564,44 +585,44 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onServerStopEvent(ulong serverConnectionHandlerID, string shutdownMessage)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
 
         [DllExport]
         public static void ts3plugin_onConnectionInfoEvent(ulong serverConnectionHandlerID, ushort clientID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerConnectionInfoEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelSubscribeEvent(ulong serverConnectionHandlerID, ulong channelID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelSubscribeFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelUnsubscribeEvent(ulong serverConnectionHandlerID, ulong channelID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelUnsubscribeFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -612,7 +633,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onChannelDescriptionUpdateEvent(ulong serverConnectionHandlerID, ulong channelID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -623,31 +644,31 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onChannelPasswordChangedEvent(ulong serverConnectionHandlerID, ulong channelID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onPlaybackShutdownCompleteEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onSoundDeviceListChangedEvent(string modeID, int playOrCap)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 #if false
         [DllExport]
         public static void ts3plugin_onEditPlaybackVoiceDataEvent(ulong serverConnectionHandlerID, ushort clientID, short samples, int sampleCount, int channels)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onEditPostProcessVoiceDataEvent(ulong serverConnectionHandlerID, ushort clientID, short samples, int sampleCount, int channels, uint channelSpeakerArray, uint channelFillMask)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
@@ -665,27 +686,27 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onCustom3dRolloffCalculationClientEvent(ulong serverConnectionHandlerID, ushort clientID, float distance, ref float volume)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-            //GTMPVoicePlugin.Log("ROllOff { GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);0} { GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);1} { GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);2}", clientID, distance, volume);
-            //GTMPVoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).ModifyVolume(distance, ref volume);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            //VoicePlugin.Log("ROllOff { VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);0} { VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);1} { VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);2}", clientID, distance, volume);
+            //VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).ModifyVolume(distance, ref volume);
         }
 
         [DllExport]
         public static void ts3plugin_onCustom3dRolloffCalculationWaveEvent(ulong serverConnectionHandlerID, ulong waveHandle, float distance, float volume)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 #endif
         /*
         [DllExport]
         public static void ts3plugin_onUserLoggingMessageEvent(string logMessage, int logLevel, string logChannel, ulong logID, string logTime, string completeLogString)
-        { GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+        { VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
         */
         [DllExport]
         public static int ts3plugin_onClientPokeEvent(ulong serverConnectionHandlerID, ushort fromClientID, string pokerName, string pokerUniqueIdentity, string message, int ffIgnored)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             return 0;
         }
 
@@ -694,92 +715,92 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onFileListEvent(ulong serverConnectionHandlerID, ulong channelID, string path, string name, ulong size, ulong datetime, int type, ulong incompletesize, string returnCode)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onFileListFinishedEvent(ulong serverConnectionHandlerID, ulong channelID, string path)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onFileInfoEvent(ulong serverConnectionHandlerID, ulong channelID, string name, ulong size, ulong datetime)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupListEvent(ulong serverConnectionHandlerID, ulong serverGroupID, string name, int type, int iconID, int saveDB)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupListFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupByClientIDEvent(ulong serverConnectionHandlerID, string name, ulong serverGroupList, ulong clientDatabaseID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupPermListEvent(ulong serverConnectionHandlerID, ulong serverGroupID, uint permissionID, int permissionValue, int permissionNegated, int permissionSkip)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupPermListFinishedEvent(ulong serverConnectionHandlerID, ulong serverGroupID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupClientListEvent(ulong serverConnectionHandlerID, ulong serverGroupID, ulong clientDatabaseID, string clientNameIdentifier, string clientUniqueID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelGroupListEvent(ulong serverConnectionHandlerID, ulong channelGroupID, string name, int type, int iconID, int saveDB)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelGroupListFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelGroupPermListEvent(ulong serverConnectionHandlerID, ulong channelGroupID, uint permissionID, int permissionValue, int permissionNegated, int permissionSkip)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelGroupPermListFinishedEvent(ulong serverConnectionHandlerID, ulong channelGroupID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onChannelPermListEvent(ulong serverConnectionHandlerID, ulong channelID, uint permissionID, int permissionValue, int permissionNegated, int permissionSkip)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
 
         [DllExport]
         public static void ts3plugin_onChannelPermListFinishedEvent(ulong serverConnectionHandlerID, ulong channelID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -794,7 +815,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientPermListEvent(ulong serverConnectionHandlerID, ulong clientDatabaseID, uint permissionID, int permissionValue, int permissionNegated, int permissionSkip)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -805,7 +826,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientPermListFinishedEvent(ulong serverConnectionHandlerID, ulong clientDatabaseID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -821,7 +842,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onChannelClientPermListEvent(ulong serverConnectionHandlerID, ulong channelID, ulong clientDatabaseID, uint permissionID, int permissionValue, bool permissionNegated, bool permissionSkip)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
 
@@ -834,7 +855,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onChannelClientPermListFinishedEvent(ulong serverConnectionHandlerID, ulong channelID, ulong clientDatabaseID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -850,86 +871,86 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientChannelGroupChangedEvent(ulong serverConnectionHandlerID, ulong channelGroupID, ulong channelID, ushort clientID, ushort invokerClientID, string invokerName, string invokerUniqueIdentity)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static int ts3plugin_onServerPermissionErrorEvent(ulong serverConnectionHandlerID, string errorMessage, uint error, string returnCode, uint failedPermissionID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             return 0;
         }
 
         [DllExport]
         public static void ts3plugin_onPermissionListGroupEndIDEvent(ulong serverConnectionHandlerID, uint groupEndID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onPermissionListEvent(ulong serverConnectionHandlerID, uint permissionID, string permissionName, string permissionDescription)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onPermissionListFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onPermissionOverviewEvent(ulong serverConnectionHandlerID, ulong clientDatabaseID, ulong channelID, int overviewType, ulong overviewID1, ulong overviewID2, uint permissionID, int permissionValue, int permissionNegated, int permissionSkip)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onPermissionOverviewFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupClientAddedEvent(ulong serverConnectionHandlerID, ushort clientID, string clientName, string clientUniqueIdentity, ulong serverGroupID, ushort invokerClientID, string invokerName, string invokerUniqueIdentity)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerGroupClientDeletedEvent(ulong serverConnectionHandlerID, ushort clientID, string clientName, string clientUniqueIdentity, ulong serverGroupID, ushort invokerClientID, string invokerName, string invokerUniqueIdentity)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onClientNeededPermissionsEvent(ulong serverConnectionHandlerID, uint permissionID, int permissionValue)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onClientNeededPermissionsFinishedEvent(ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onFileTransferStatusEvent(ushort transferID, uint status, string statusMessage, ulong remotefileSize, ulong serverConnectionHandlerID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onClientChatClosedEvent(ulong serverConnectionHandlerID, ushort clientID, string clientUniqueIdentity)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onClientChatComposingEvent(ulong serverConnectionHandlerID, ushort clientID, string clientUniqueIdentity)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -940,7 +961,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onServerLogEvent(ulong serverConnectionHandlerID, string logMsg)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -952,19 +973,19 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onServerLogFinishedEvent(ulong serverConnectionHandlerID, ulong lastPos, ulong fileSize)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onMessageListEvent(ulong serverConnectionHandlerID, ulong messageID, string fromClientUniqueIdentity, string subject, ulong timestamp, int flagRead)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onMessageGetEvent(ulong serverConnectionHandlerID, ulong messageID, string fromClientUniqueIdentity, string subject, string message, ulong timestamp)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -976,7 +997,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientDBIDfromUIDEvent(ulong serverConnectionHandlerID, string uniqueClientIdentifier, ulong clientDatabaseID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -989,13 +1010,13 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientNamefromUIDEvent(ulong serverConnectionHandlerID, string uniqueClientIdentifier, ulong clientDatabaseID, string clientNickName)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onClientNamefromDBIDEvent(ulong serverConnectionHandlerID, string uniqueClientIdentifier, ulong clientDatabaseID, string clientNickName)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -1011,7 +1032,7 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onComplainListEvent(ulong serverConnectionHandlerID, ulong targetClientDatabaseID, string targetClientNickName, ulong fromClientDatabaseID, string fromClientNickName, string complainReason, ulong timestamp)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -1034,32 +1055,32 @@ namespace TeamSpeakPlugin
         public static void ts3plugin_onBanListEvent(ulong serverConnectionHandlerID, ulong banid, string ip, string name, string uid, string myTSId, ulong creationTime, ulong durationTime, string invokerName,
                                       ulong invokercldbid, string invokeruid, string reason, int numberOfEnforcements, string lastNickName)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onClientServerQueryLoginPasswordEvent(ulong serverConnectionHandlerID, string loginPassword)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onPluginCommandEvent(ulong serverConnectionHandlerID, string pluginName, string pluginCommand, ushort invokerClientID, string invokerName, string invokerUniqueIdentity )
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
 
         }
 
         [DllExport]
         public static void ts3plugin_onIncomingClientQueryEvent(ulong serverConnectionHandlerID, string commandText)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onServerTemporaryPasswordListEvent(ulong serverConnectionHandlerID, string clientNickname, string uniqueClientIdentifier, string description, string password, ulong timestampStart, ulong timestampEnd, ulong targetChannelID, string targetChannelPW)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         /// <summary>
@@ -1071,45 +1092,45 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onAvatarUpdated(ulong serverConnectionHandlerID, ushort clientID, string avatarPath)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onMenuItemEvent(ulong serverConnectionHandlerID, PluginMenuTypeEnum type, int menuItemID, ulong selectedItemID)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onHotkeyEvent(string keyword)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static void ts3plugin_onHotkeyRecordedEvent(string keyword, string key)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
         }
 
         [DllExport]
         public static string ts3plugin_keyDeviceName(string keyIdentifier)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             return null;
         }
 
         [DllExport]
         public static string ts3plugin_displayKeyText(string keyIdentifier)
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             return null;
         }
 
         [DllExport]
         public static string ts3plugin_keyPrefix()
         {
-            GTMPVoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             return null;
         }
 
