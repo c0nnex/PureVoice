@@ -1,5 +1,4 @@
 ﻿
-using ConcurrentCollections;
 using PureVoice.VoiceClient.Model;
 using LiteNetLib;
 using LiteNetLib.Utils;
@@ -10,6 +9,12 @@ using System.Reflection;
 using System.Threading;
 using System.Timers;
 using System.Windows.Forms;
+using PureVoice.DSP;
+using System.Linq;
+using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace PureVoice.VoiceClient
 {
@@ -19,16 +24,18 @@ namespace PureVoice.VoiceClient
         NetManager ServerListener = null;
 
         EventBasedNetListener clientListener = new EventBasedNetListener();
-        private readonly NetPacketProcessor _netPacketProcessor = new NetPacketProcessor();
+        private VoicePaketProcessor _netPacketProcessor;
         private VoicePaketConfig _configuration;
         private VoicePaketSetup _connectionInfo;
-        private System.Timers.Timer _timer;
+        private Thread clientThread;
         private DateTime _lastPureVoicePing = DateTime.Now;
         private bool _needConnection = false;
         public event EventHandler<VoiceClient> OnDisconnected;
         private bool _GotWarning = false;
         private static bool _ShutDown = false;
         private SmartLock smartLock = new SmartLock("VoiceClient");
+        private DateTime ServerConnectionTimeout = DateTime.MinValue;
+        private CancellationTokenSource CancellationTokenSource = new CancellationTokenSource();
 
         public bool IsConnected
         {
@@ -38,9 +45,19 @@ namespace PureVoice.VoiceClient
                     return false;
                 if (!Client.IsRunning)
                     return false;
-                var p = Client?.GetFirstPeer();
-                if (p != null)
-                    return p.ConnectionState != ConnectionState.Disconnected;
+                return Client.IsConnected();
+            }
+        }
+
+        public bool IsConnecting
+        {
+            get
+            {
+                if (Client == null)
+                    return false;
+                if (!Client.IsRunning)
+                    return false;
+                return Client.GetPeersCount(ConnectionState.Outgoing) > 0;
                 return false;
             }
         }
@@ -58,71 +75,89 @@ namespace PureVoice.VoiceClient
         public VoiceClient()
         {
 
+            NetDebug.Logger = this;
+            _netPacketProcessor = new VoicePaketProcessor();
+            _netPacketProcessor.Subscribe<VoicePaketSetup, NetPeer>(onVoiceSetup);
+            _netPacketProcessor.Subscribe<VoicePaketCommand, NetPeer>(onVoiceCommand);
+            _netPacketProcessor.Subscribe<VoicePaketUpdate, NetPeer>(onVoiceUpdate);
+            _netPacketProcessor.Subscribe<VoicePaketMute, NetPeer>(onVoiceMute);
+            _netPacketProcessor.Subscribe<VoicePaketBatchMute, NetPeer>(onVoiceBatchMute);
+            _netPacketProcessor.SubscribeNetSerializable<VoicePaketBatchUpdate, NetPeer>(onVoiceBatchUpdate);
+            _netPacketProcessor.Subscribe<VoicePaketConfigureClient, NetPeer>(onVoiceConfigureClient);
+            _netPacketProcessor.Subscribe<VoicePaketUpdateDistortion, NetPeer>(onVoiceUpdateDistortion);
+
+            clientListener.NetworkReceiveEvent +=
+            (peer, reader, method) =>
+            {
+                try
+                {
+#if DEBUG
+                    VoicePlugin.Log("Receive " + reader.PeekULong().ToString("X") + "\r\n" + reader.RawData.HexDump(reader.UserDataOffset, reader.UserDataSize));
+#endif
+                    _netPacketProcessor.ReadAllPackets(reader, peer);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log(ex.ToString());
+                }
+            };
+            clientListener.PeerConnectedEvent += (p) => VoicePlugin.Log("PeerConnectedEvent {0}", p);
+            clientListener.PeerDisconnectedEvent += ClientListener_PeerDisconnectedEvent;
+            clientListener.NetworkErrorEvent += ClientListener_NetworkErrorEvent;
+            clientListener.NetworkLatencyUpdateEvent += ClientListener_NetworkLatencyUpdateEvent;
 
         }
 
         public void AcceptConnections()
         {
-            NetDebug.Logger = this;
+            if (ServerListener == null)
+            {
+                clientThread = new Thread(VoiceClientThread) { IsBackground = true };
+                clientThread.Start(CancellationTokenSource.Token);
 
-            _netPacketProcessor.SubscribeNetSerializable<VoicePaketSetup, NetPeer>(onVoiceSetup);
-            _netPacketProcessor.SubscribeNetSerializable<VoicePaketCommand, NetPeer>(onVoiceCommand);
-            _netPacketProcessor.SubscribeNetSerializable<VoicePaketUpdate, NetPeer>(onVoiceUpdate);
-            _netPacketProcessor.SubscribeNetSerializable<VoicePaketMute, NetPeer>(onVoiceMute);
-            _netPacketProcessor.SubscribeNetSerializable<VoicePaketBatchMute, NetPeer>(onVoiceBatchMute);
-            _netPacketProcessor.SubscribeNetSerializable<VoicePaketBatchUpdate, NetPeer>(onVoiceBatchUpdate);
-            _netPacketProcessor.SubscribeNetSerializable<VoicePaketConfigureClient, NetPeer>(onVoiceConfigureClient);
+                var evL = new EventBasedNetListener();
+                evL.NetworkReceiveUnconnectedEvent += (ep, reader, messageType) => ServerListener_NetworkReceiveUnconnectedEvent(ep, reader, messageType);
+                ServerListener = new NetManager(evL) { UnconnectedMessagesEnabled = true, UnsyncedEvents = true };
+                ServerListener.Start(4239);
+                WebListener.ConnectionRequestReceived += WebListener_ConnectionRequestReceived;
+                WebListener.StartListen();
+                VoicePlugin.Log("voiceClient waiting for Connectioninfo...");
+                _ShutDown = false;
+            }
+        }
 
-            clientListener.NetworkReceiveEvent +=
-                (peer, reader, method) =>
-                {
-                    _netPacketProcessor.ReadAllPackets(reader, peer);
-                };
-            clientListener.PeerConnectedEvent += (p) => VoicePlugin.Log("PeerConnectedEvent {0}", p);
-            clientListener.PeerDisconnectedEvent += ClientListener_PeerDisconnectedEvent;
-            clientListener.NetworkErrorEvent += (p, e) => VoicePlugin.Log("NetworkErrorEvent {0} => {1}", p, e);
-            clientListener.NetworkLatencyUpdateEvent += ClientListener_NetworkLatencyUpdateEvent;
-            
-            _timer = new System.Timers.Timer();
-            _timer.Interval = 100;
-            _timer.Elapsed += (s, e) =>
+        private void VoiceClientThread(object token)
+        {
+            CancellationToken cancellationToken = (CancellationToken)token;
+            while (!cancellationToken.IsCancellationRequested)
             {
                 if (_needConnection)
                 {
-                    if (IsConnected && DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10))
+                    if (IsConnected && VoicePlugin.IsConnectedToVoiceServer)
                     {
-                        _needConnection = false;
-                        var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
-                        if (con != null)
+                        if (DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10))
                         {
-                            con.DisconnectVoiceServer();
+                            VoicePlugin.Log("No ping from game for 10 Seconds. assuming dead. Disconnecting");
+                            WeGotDisconnected();
                         }
-                        OnDisconnected?.Invoke(this, this);
-                        Disconnect();
-                        return;
                     }
-                    
-                    if (!IsConnected)
+                    else
                     {
-                        StartServerConnection();
-                        return;
+                        if (!IsConnecting)
+                            StartServerConnection();
+                        else
+                        {
+                            if (DateTime.Now > ServerConnectionTimeout)
+                            {
+                                VoicePlugin.Log("Timeout connecting to server. Retrying....");
+                                StartServerConnection();
+                            }
+                        }
                     }
                 }
-                if (IsConnected)
-                    Client?.PollEvents();
-            };
-            
-            if (!_timer.Enabled)
-                _timer.Start();
-
-            var evL = new EventBasedNetListener();
-            evL.NetworkReceiveUnconnectedEvent += (ep, reader, messageType) => ServerListener_NetworkReceiveUnconnectedEvent(ep, reader, messageType);
-            ServerListener = new NetManager(evL) { UnconnectedMessagesEnabled = true,UnsyncedEvents = true };
-            ServerListener.Start(4239);
-            WebListener.ConnectionRequestReceived += WebListener_ConnectionRequestReceived;
-            WebListener.StartListen();
-            VoicePlugin.Log("voiceClient waiting for Connectioninfo...");
-            _ShutDown = false;
+                Client?.PollEvents();
+                Thread.Sleep(100);
+            }
         }
 
         private void WebListener_ConnectionRequestReceived(object sender, VoicePaketConfig e)
@@ -133,13 +168,14 @@ namespace PureVoice.VoiceClient
                     return;
                 _lastPureVoicePing = DateTime.Now;
 
-                VoicePlugin.Log("Accept Configuration via Web");
+
                 if (IsConnected)
                 {
-                    VoicePlugin.Log("Already connected");
+                    VoicePlugin.VerboseLog("Already connected");
                     return;
                 }
 
+                VoicePlugin.VerboseLog("Accept Configuration via Web");
                 if (e.ClientVersionRequired > VoicePlugin.PluginVersion)
                 {
                     if (!_GotWarning)
@@ -149,13 +185,17 @@ namespace PureVoice.VoiceClient
                     }
                     return;
                 }
+                if (VoicePlugin.GetConnection(e.ServerGUID) == null)
+                {
+                    VoicePlugin.VerboseLog("Not connected to target TS Server");
+                    return;
+                }
                 _lastPureVoicePing = DateTime.Now;
                 //VoicePlugin.Log("process VoicePaketConfig {0}", _configuration);
                 _configuration = e;
                 _needConnection = true;
-                // StartServerConnection();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 VoicePlugin.Log(ex.ToString());
             }
@@ -165,17 +205,17 @@ namespace PureVoice.VoiceClient
         {
             _ShutDown = true;
             VoicePlugin.Log("Shutting down voiceClient");
-            if (_timer.Enabled)
-                _timer.Stop();
+            CancellationTokenSource.Cancel();
             Client?.Stop();
             ServerListener?.Stop();
+            WebListener.StopListen();
         }
 
         private void CreateClientConnection()
         {
             Disconnect();
-            Client = new NetManager(clientListener, 1);
-            Client.UnsyncedEvents = false;
+            Client = new NetManager(clientListener);
+            Client.UnsyncedEvents = true;
             Client.UnconnectedMessagesEnabled = false;
             Client.Start();
         }
@@ -186,11 +226,17 @@ namespace PureVoice.VoiceClient
            {
                if (Client != null)
                {
-                   var cl = Client;
-                   Client = null;
-                   cl?.DisconnectAll();
-                   cl?.Stop();
-                   cl = null;
+                   var tcx = new CancellationTokenSource();
+                   Task.Run(() =>
+                    {
+                        var cl = Client;
+                        Client = null;
+                        cl?.DisconnectAll();
+                        cl?.Stop(false);
+                        cl = null;
+                        VoicePlugin.IsConnectedToVoiceServer = false;
+                    });
+                   tcx.CancelAfter(1000);
                }
            });
         }
@@ -199,16 +245,13 @@ namespace PureVoice.VoiceClient
         {
             try
             {
-                if (_needConnection && (DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10)))
+                if (_needConnection)
                 {
-                    _needConnection = false;
-                    var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
-                    if (con != null)
+                    if (DateTime.Now - _lastPureVoicePing > TimeSpan.FromSeconds(10))
                     {
-                        con.DisconnectVoiceServer();
+                        VoicePlugin.Log("No ping from game for 10 Seconds. assuming dead. Disconnecting");
+                        WeGotDisconnected();
                     }
-                    OnDisconnected?.Invoke(this, this);
-                    Disconnect();
                 }
             }
             catch (Exception ex)
@@ -226,6 +269,7 @@ namespace PureVoice.VoiceClient
                     VoicePlugin.Log("ConnectionEstablished no info ({0})", e.GUID);
                     return false;
                 }
+                e.Init();
                 if (!e.IsInitialized)
                 {
                     VoicePlugin.Log("ConnectionEstablished not initialized ({0})", e.GUID);
@@ -234,8 +278,53 @@ namespace PureVoice.VoiceClient
                 if (e.GUID == _connectionInfo.ServerGUID)
                 {
                     if (e.IsVoiceEnabled)
-                    VoicePlugin.Log("ConnectionEstablished Gotcha! ({0})", e.GUID);
+                        VoicePlugin.Log("ConnectionEstablished Gotcha! ({0})", e.GUID);
                     e.UpdateSetup(_connectionInfo);
+
+                    foreach (var item in _connectionInfo.DistortionSettings)
+                    {
+                        VoicePlugin.Log($"Distortion {item}");
+                        VoiceFilterChain fChain = new VoiceFilterChain();
+
+                        foreach (var filterItem in item.Filters)
+                        {
+                            if (String.IsNullOrEmpty(filterItem))
+                                continue;
+                            var parts = filterItem.Split(new string[] { "##" },StringSplitOptions.RemoveEmptyEntries);
+                            var filterClass = GetArg(parts,0, "Presets.Default");
+                            var filterSettings = GetArg(parts, 1, "");
+
+                            var type = Type.GetType("PureVoice.DSP." + filterClass, false);
+                            if (type == null)
+                            {
+                                VoicePlugin.VerboseLog($"Class PureVoice.DSP.{filterClass} not found, using Standard");
+                                type = typeof(PureVoice.DSP.Presets.Default);
+                            }
+                            try
+                            {
+                                // TODO: Ask User for permission if type is outside baseplugin and not authenticode signed
+                                object itemObject = Activator.CreateInstance(type);
+
+                                if (itemObject is VoiceFilterChain)
+                                {
+                                    fChain = (VoiceFilterChain)itemObject;
+                                    fChain.Congfigure(filterSettings);
+                                }
+                                if (itemObject is IVoiceFilter)
+                                {
+                                    var iFilter = (IVoiceFilter)itemObject;
+                                    fChain.AddFilter(iFilter.WithConfiguration(filterSettings));
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+                                VoicePlugin.Log("Problem instanciating FilterChain " + filterClass + ": " + ex.Message);
+                                continue;
+                            }
+                        }
+                        e.AddVoiceFilter(item.VoiceDistortion, fChain);
+                    }
+
                     _netPacketProcessor.Send(Client, new VoicePaketConnectClient()
                     {
                         ClientGUID = _configuration.ClientGUID,
@@ -249,6 +338,7 @@ namespace PureVoice.VoiceClient
                 else
                 {
                     VoicePlugin.Log("ConnectionEstablished wrong server ({0})", e.GUID);
+                    return false;
                 }
                 return true;
             }
@@ -261,18 +351,33 @@ namespace PureVoice.VoiceClient
 
         private void ClientListener_PeerDisconnectedEvent(NetPeer peer, DisconnectInfo disconnectInfo)
         {
+            VoicePlugin.Log("PeerDisconnectedEvent {0} => {1}", peer, disconnectInfo.Reason);
+            WeGotDisconnected();
+        }
+
+        private void ClientListener_NetworkErrorEvent(IPEndPoint endPoint, SocketError socketErrorCode)
+        {
+            VoicePlugin.Log("PeerDisconnectedEvent {0} => {1}", endPoint, socketErrorCode);
+            WeGotDisconnected();
+        }
+
+        private void WeGotDisconnected()
+        {
             try
             {
-                VoicePlugin.Log("PeerDisconnectedEvent {0} => {1}", peer, disconnectInfo.Reason);
-
+                VoicePlugin.VerboseLog("WeGotDisconnected");
                 _needConnection = false;
-                var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
-                if (con != null)
+                if (_connectionInfo != null)
                 {
-                    con.DisconnectVoiceServer();
+                    var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
+                    if (con != null)
+                    {
+                        con.DisconnectVoiceServer();
+                    }
                 }
                 OnDisconnected?.Invoke(this, this);
                 Disconnect();
+                VoicePlugin.IsConnectedToVoiceServer = false;
             }
             catch (Exception ex)
             {
@@ -280,13 +385,26 @@ namespace PureVoice.VoiceClient
             }
         }
 
-        private void ServerListener_NetworkReceiveUnconnectedEvent(NetEndPoint remoteEndPoint, NetDataReader reader, UnconnectedMessageType messageType)
+        public static T GetArg<T>(IEnumerable<object> args, int index, T defaultValue = default(T))
+        {
+            var tmpList = args.ToList();
+            if ((args == null) || (index >= tmpList.Count))
+                return defaultValue;
+            try
+            {
+                T tmp = (T)Convert.ChangeType(tmpList[index], typeof(T), CultureInfo.InvariantCulture);
+                return tmp;
+            }
+            catch { return defaultValue; }
+        }
+
+        private void ServerListener_NetworkReceiveUnconnectedEvent(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
         {
             try
             {
                 if (_ShutDown)
                     return;
-                if ((remoteEndPoint.Host != "127.0.0.1") && (remoteEndPoint.Host != "[::1]"))
+                if ((remoteEndPoint.Address.ToString() != "127.0.0.1") && (remoteEndPoint.Address.ToString() != "[::1]"))
                 {
                     VoicePlugin.Log("Refused from {0}", remoteEndPoint);
                     return;
@@ -296,42 +414,61 @@ namespace PureVoice.VoiceClient
                     VoicePlugin.Log("Refused {1} from {0}", remoteEndPoint, messageType);
                     return;
                 }
+                string hello = null;
+                int voiceVersion;
 
-                var hello = reader.GetString();
-                var voiceVersion = reader.GetInt();
+                if (reader.PeekChar() != 'P')
+                    return;
+
+                if (reader.AvailableBytes > 1024)
+                    return;
+
+                var inStr = BitConverter.ToString(reader.GetRemainingBytes());
+                var vals = inStr.Split('|');
+
+                hello = GetArg(vals, 0, "XXXX");
+                voiceVersion = GetArg(vals, 1, 0);
                 if (voiceVersion != 1)
                 {
                     VoicePlugin.Log("Refused v {1} from {0}", remoteEndPoint, voiceVersion);
                     return;
                 }
-                if ((hello == "GTMPVOICECOMMAND") || (hello == "PUREVOICECOMMAND"))
+                switch (hello)
                 {
-                    VoicePlugin.Log("Command from {0}", remoteEndPoint);
-                    if (IsConnected)
-                    {
-                        var Connection = Client?.GetFirstPeer();
-                        if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
-                            _netPacketProcessor.Send(Connection, new VoicePaketCommand() { Command = reader.GetString(), Data = reader.GetString() } , DeliveryMethod.ReliableOrdered);
-                    }
-                    return;
+                    case "PUREVOICE":
+                        {
+                            _configuration = new VoicePaketConfig();
+                            _configuration.ServerIP = GetArg(vals, 2, "127.0.0.1");
+                            _configuration.ServerPort = GetArg(vals, 3, 0);
+                            _configuration.ServerSecret = GetArg(vals, 4, "geheim");
+                            _configuration.ServerGUID = GetArg(vals, 5, "geheim");
+                            _configuration.ClientGUID = GetArg(vals, 6, "unnbekannt");
+                            Version.TryParse(GetArg(vals, 7, "0.0.0.0"), out _configuration.ClientVersionRequired);
+                            break;
+                        }
+                    case "PUREVOICECOMMAND":
+                        {
+                            VoicePlugin.Log("Command from {0}", remoteEndPoint);
+                            if (IsConnected)
+                            {
+                                if ((Client != null) && (Client.ConnectedPeersCount != 0))
+                                    _netPacketProcessor.Send(Client, new VoicePaketCommand() { Command = GetArg(vals, 2, "IGNORE"), Data = GetArg(vals, 3, "IGNORE") }, DeliveryMethod.ReliableOrdered);
+                            }
+                            return;
+                        }
+                    default:
+                        return;
                 }
-                if ((hello != "GTMPVOICE") && (hello != "PUREVOICE"))
-                {
-                    VoicePlugin.Log("Invalid configuration from {0}", remoteEndPoint);
-                    return;
-                }
-                _configuration = new VoicePaketConfig();
-                _configuration.Deserialize(reader);
 
                 _lastPureVoicePing = DateTime.Now;
 
-                VoicePlugin.Log("Accept Configuration from {0}", remoteEndPoint);
+
                 if (IsConnected)
                 {
-                    VoicePlugin.Log("Already connected");
+                    VoicePlugin.VerboseLog("Already connected");
                     return;
                 }
-
+                VoicePlugin.Log("Accept Configuration from {0}", remoteEndPoint);
                 if (_configuration.ClientVersionRequired > VoicePlugin.PluginVersion)
                 {
                     if (!_GotWarning)
@@ -339,6 +476,11 @@ namespace PureVoice.VoiceClient
                         _GotWarning = true;
                         MessageBox.Show($"{VoicePlugin.Name} outdated. Version {_configuration.ClientVersionRequired} is required. Please update.", "PureVoice Plugin Outdated");
                     }
+                    return;
+                }
+                if (VoicePlugin.GetConnection(_configuration.ServerGUID) == null)
+                {
+                    VoicePlugin.VerboseLog("Not connected to target TS Server");
                     return;
                 }
                 _lastPureVoicePing = DateTime.Now;
@@ -354,11 +496,18 @@ namespace PureVoice.VoiceClient
 
         private void StartServerConnection()
         {
-            var cp = new VoicePaketConnectServer() { Secret = _configuration.ServerSecret, Version = Assembly.GetExecutingAssembly().GetName().Version, ClientGUID = _configuration.ClientGUID };
-            var nw = new NetDataWriter();
-            cp.Serialize(nw);
-            CreateClientConnection();
-            Client.Connect(_configuration.ServerIP, _configuration.ServerPort, nw);
+            try
+            {
+                VoicePlugin.Log("Trying to connect to " + _configuration.ServerIP + ":" + _configuration.ServerPort);
+                var cp = new VoicePaketConnectServer() { Secret = _configuration.ServerSecret, Version = Assembly.GetExecutingAssembly().GetName().Version, ClientGUID = _configuration.ClientGUID };
+                var nw = new NetDataWriter();
+                cp.Serialize(nw);
+                CreateClientConnection();
+                ServerConnectionTimeout = DateTime.Now.AddSeconds(30);
+                Client.Connect(_configuration.ServerIP, _configuration.ServerPort, nw);
+            }
+            catch { }
+
         }
 
         private void ClientListener_ConnectionRequestEvent(ConnectionRequest request)
@@ -373,19 +522,24 @@ namespace PureVoice.VoiceClient
                 VoicePlugin.Log("VoiceSetup {0}", args);
                 _connectionInfo = args;
                 var con = VoicePlugin.GetConnection(args.ServerGUID);
-                if ((con != null) && con.IsInitialized && con.IsConnected)
+                if ((con != null) && con.IsConnected)
                 {
                     if (!VoicePlugin_ConnectionEstablished(con))
                     {
                         VoicePlugin.Log("Disconnecting Peer (TS Server not ready)");
-                        Disconnect();
+                        WeGotDisconnected();
+                    }
+                    else
+                    {
+                        VoicePlugin.IsConnectedToVoiceServer = true;
                     }
                 }
                 else
                 {
                     VoicePlugin.Log("Disconnecting Peer (TS Server not connected)");
-                    Disconnect();
+                    WeGotDisconnected();
                 }
+                ServerConnectionTimeout = DateTime.MaxValue;
             }
             catch (Exception ex)
             {
@@ -403,6 +557,32 @@ namespace PureVoice.VoiceClient
             }
         }
 
+        private void onVoiceUpdateDistortion(VoicePaketUpdateDistortion args, NetPeer arg2)
+        {
+            try
+            {
+                VoicePlugin.Log("UpdateDistortion {0}: {1} play {2}", args.ClientID, args.VoiceDistortion, args.VoiceSound);
+                var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
+                if (con == null)
+                    return;
+                Client cl = con.GetClient(args.ClientID);
+                if (cl == null)
+                {
+                    VoicePlugin.Log("UpdateDistortion {0}: NOT FOUND", args.ClientID);
+                    return;
+                }
+                cl.SetVoiceDistortion(args.VoiceDistortion);
+                if (!String.IsNullOrEmpty(args.VoiceSound) && (args.VoiceSound != "NONE"))
+                {
+                    con.PlaySound(args.VoiceSound, args.ClientID == 0 || args.ClientID == con.LocalClientId);
+                }
+            }
+            catch (Exception ex)
+            {
+                VoicePlugin.Log(ex.ToString());
+            }
+        }
+
         void onVoiceMute(VoicePaketMute args, NetPeer peer)
         {
             var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
@@ -410,16 +590,16 @@ namespace PureVoice.VoiceClient
                 return;
             if (args.IsMute)
             {
-                VoicePlugin.Log("Mute {0}", args.Name);
-                if (args.Name == "_ALL_")
+                VoicePlugin.VerboseLog("Mute {0}", args.ClientID);
+                if (args.ClientID == 0)
                     con.Mute("_ALL_");
                 else
-                    con.GetClient(args.Name)?.Mute();
+                    con.GetClient(args.ClientID)?.Mute();
             }
             else
             {
-                VoicePlugin.Log("Unmute {0}", args.Name);
-                con.GetClient(args.Name)?.Unmute();
+                VoicePlugin.VerboseLog("Unmute {0}", args.ClientID);
+                con.GetClient(args.ClientID)?.Unmute();
             }
         }
 
@@ -430,13 +610,13 @@ namespace PureVoice.VoiceClient
                 var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
                 if (con == null)
                     return;
-                Client cl = con.GetClient(args.PlayerName);
+                Client cl = con.GetClient(args.ClientID);
                 if (cl == null)
                 {
-                    VoicePlugin.Log("UpdatePosition {0}: {1} {2} {3} NOT FOUND", args.PlayerName, args.Position, args.PositionIsRelative, args.VolumeModifier);
+                    VoicePlugin.Log("UpdatePosition {0}: {1} {2} {3} NOT FOUND", args.ClientID, args.Position, args.PositionIsRelative, args.VolumeModifier);
                     return;
                 }
-                cl.UpdatePosition(args.Position, args.VolumeModifier, args.PositionIsRelative);
+                cl.UpdatePosition(args.Position, args.VolumeModifier, args.SignalQuality, args.VoiceDistortion, args.PositionIsRelative);
             }
             catch (Exception ex)
             {
@@ -449,7 +629,7 @@ namespace PureVoice.VoiceClient
         {
             try
             {
-                VoicePlugin.Log("BatchMute {0}", data.Mutelist.Count);
+                VoicePlugin.VerboseLog("BatchMute {0}", data.Mutelist.Count);
                 var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
                 if (con == null)
                     return;
@@ -467,32 +647,29 @@ namespace PureVoice.VoiceClient
         {
             try
             {
-                
+
                 var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
                 if (con == null)
                     return;
-                var mute = new HashSet<ushort>( con.GetChannel(con.IngameChannel).AllClients);
+                var mute = new HashSet<ushort>(con.GetChannel(con.IngameChannel).AllClients);
                 mute.Remove(con.LocalClientId);
                 var unmute = new HashSet<ushort>();
-                if (data.Data.Length > 0)
+                if (data.BatchData.Count > 0)
                 {
-                    data.Data.ForEach(d =>
+                    data.BatchData.ForEach(d =>
                     {
-                        if (d.ClientID == 0)
-                        {
-                            d.ClientID = con.GetClientId(d.ClientName);
-                        }
                         if (d.ClientID != 0)
                         {
                             mute.Remove(d.ClientID);
                             unmute.Add(d.ClientID);
-                            con.GetClient(d.ClientID)?.UpdatePosition(d.Position, d.VolumeModifier, false, false);
+                            VoicePlugin.VerboseLog(() => $"BatchUpdate {d.ClientID} v {d.VolumeModifier} d {d.VoiceDistortion} q {d.SignalQuality} p {d.Position}");
+                            con.GetClient(d.ClientID)?.UpdatePosition(d.Position, d.VolumeModifier, d.SignalQuality, d.VoiceDistortion, false, false);
                         }
                     });
                 }
                 if (mute.SetEquals(con._MutedClients) && unmute.SetEquals(con._UnmutedClients))
                     return;
-                VoicePlugin.Log("BatchUpdate {0}", data.Data.Length);
+                VoicePlugin.VerboseLog("BatchUpdate {0}", data.BatchData.Count);
                 con._UnmutedClients = new ConcurrentHashSet<ushort>(unmute);
                 con._MutedClients = new ConcurrentHashSet<ushort>(mute);
                 con._MutedClients.TryRemove(con.LocalClientId);
@@ -512,9 +689,7 @@ namespace PureVoice.VoiceClient
                 if (args.Command == "DISCONNECT")
                 {
                     _needConnection = false;
-                    var Connection = Client.GetFirstPeer();
-                    Connection?.Disconnect();
-                    Connection = null;
+                    Client?.DisconnectAll();
                     var con = VoicePlugin.GetConnection(_connectionInfo.ServerGUID);
                     if (con != null)
                     {
@@ -542,32 +717,30 @@ namespace PureVoice.VoiceClient
         {
             if (!IsConnected)
                 return;
-            var Connection = Client?.GetFirstPeer();
-            if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
-                _netPacketProcessor.Send(Connection, new VoicePaketTalking(isTalking), DeliveryMethod.ReliableOrdered);
+            if ((Client != null) && (Client.IsConnected()))
+                _netPacketProcessor.Send(Client, new VoicePaketTalking(isTalking), DeliveryMethod.ReliableOrdered);
         }
 
         internal void SendSpeakersStatusChanged(bool isMuted)
-        { 
+        {
             if (!IsConnected)
                 return;
-            var Connection = Client?.GetFirstPeer();
-            if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
-                _netPacketProcessor.Send(Connection, new VoicePaketSpeakersState(isMuted), DeliveryMethod.ReliableOrdered);
+            if ((Client != null) && (Client.IsConnected()))
+                _netPacketProcessor.Send(Client, new VoicePaketSpeakersState(isMuted), DeliveryMethod.ReliableOrdered);
         }
 
         internal void SendMicrophoneStatusChanged(bool isMuted)
         {
             if (!IsConnected)
                 return;
-            var Connection = Client?.GetFirstPeer();
-            if ((Connection != null) && (Connection.ConnectionState == ConnectionState.Connected))
-                _netPacketProcessor.Send(Connection, new VoicePaketMicrophoneState(isMuted), DeliveryMethod.ReliableOrdered);
+            if ((Client != null) && (Client.IsConnected()))
+                _netPacketProcessor.Send(Client, new VoicePaketMicrophoneState(isMuted), DeliveryMethod.ReliableOrdered);
         }
 
-        public void WriteNet(ConsoleColor color, string str, params object[] args)
+        public void WriteNet(NetLogLevel level, string str, params object[] args)
         {
-            VoicePlugin.Log(str, args);
+            if (level < NetLogLevel.Trace)
+                VoicePlugin.Log(str, args);
         }
     }
 }

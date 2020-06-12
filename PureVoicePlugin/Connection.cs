@@ -1,7 +1,8 @@
-﻿using ConcurrentCollections;
+﻿using PureVoice.DSP;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -16,7 +17,8 @@ namespace PureVoice
         public delegate Client GetClientDelegate(string nameOrGuid);
 
         public ulong ID;
-        public string GUID;
+        public string ServerHashString;
+        private string gUID;
         public ConnectionStatusEnum Status = ConnectionStatusEnum.STATUS_DISCONNECTED;
         public ConcurrentDictionary<ushort, Client> ClientMap = new ConcurrentDictionary<ushort, Client>();
         public ConcurrentDictionary<ulong, Channel> ChannelMap = new ConcurrentDictionary<ulong, Channel>();
@@ -35,14 +37,19 @@ namespace PureVoice
         public bool IsVoiceEnabled = false;
 
         public bool IsConnected => ID != 0 && Status == ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED;
+
+        public string GUID { get => gUID; set { gUID = value; ServerHashString = VoicePlugin.Hash(value).ToString("X"); } }
+
         public bool IsInitialized = false;
 
         private VoiceClient.Model.VoicePaketSetup _voiceSetup = new VoiceClient.Model.VoicePaketSetup();
 
         public ConcurrentHashSet<ushort> _MutedClients = new ConcurrentHashSet<ushort>();
         public ConcurrentHashSet<ushort> _UnmutedClients = new ConcurrentHashSet<ushort>();
+
         private Timer _MuteTimer = new Timer();
-        //        private object LockObject = new object();
+        private Dictionary<byte, VoiceFilterChain> _VoiceFilters = new Dictionary<byte, VoiceFilterChain>();
+
 
 
         public Connection(ulong id)
@@ -110,6 +117,7 @@ namespace PureVoice
                 if (!IsInitialized && Status == ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED)
                 {
                     Log("INIT");
+                    Update();
                     Check(Functions.getClientID(ID, ref LocalClientId));
                     var localClient = GetClient(LocalClientId);
                     localClient.IsLocalClient = true;
@@ -117,15 +125,18 @@ namespace PureVoice
                     LocalClient = localClient;
                     LocalClientName = localClient.Name;
                     Log("Local client id {0}", LocalClientId);
-
+                    
                     IntPtr retVal = IntPtr.Zero;
                     Check(Functions.getClientList(ID, ref retVal));
                     var newClients = TeamSpeakBase.ReadShortIDList<Client>(retVal, GetClient);
-                    Log($"{newClients.Count} Clients");
-                    newClients.ForEach(cl => cl.Update());
-                    var cu = newClients.Select(cl => cl.ID).ToArray();
-                    Log($"{cu.Length} Unmute Clients");
-                    DoUnmuteList(cu);
+                    Log($"{newClients?.Count} Clients");
+                    if (newClients != null)
+                    {
+                        newClients.ForEach(cl => cl.Update());
+                        var cu = newClients.Select(cl => cl.ID).ToArray();
+                        Log($"{cu.Length} Unmute Clients");
+                        DoUnmuteList(cu);
+                    }
                     LocalClient.UpdateChannel();
                     Check(Functions.systemset3DListenerAttributes(ID, new TSVector(), new TSVector(), new TSVector()));
                     IsInitialized = true;
@@ -181,7 +192,7 @@ namespace PureVoice
         public string GetServerVarString(VirtualServerProperties flag)
         {
             IntPtr retVal = IntPtr.Zero;
-            IntPtr flg = new IntPtr((int)flag);
+            
 
             if (Functions.getServerVariableAsString(ID, flag, ref retVal) == ERROR_OK)
             {
@@ -238,7 +249,7 @@ namespace PureVoice
                 _UnmutedClients.Clear();
                 SwitchBack();
             }
-
+            VoicePlugin.IsConnectedToVoiceServer = false;
         }
 
         internal void UnmuteAll()
@@ -258,6 +269,41 @@ namespace PureVoice
             var c = GetClient(clientName);
             DoMute(c.ID);
         }
+
+        internal void AddVoiceFilter(byte distortion, VoiceFilterChain voiceFilterChain)
+        {
+            _VoiceFilters[distortion] = voiceFilterChain;
+        }
+
+        internal unsafe void ProcessVoice(byte currentVoiceDistortion, short* samples, int sampleCount, int channels,float volume = 1.0f)
+        {
+            if (_VoiceFilters.TryGetValue(currentVoiceDistortion,out var filter))
+            {
+                VoicePlugin.VerboseLog("ApplyFilter " + filter.ToString());
+                const float mul = 1.0f / 32768.0f;
+                filter.SignalQuality = volume;
+                float[] data = new float[sampleCount * channels];
+                for (int i = 0; i < sampleCount * channels; i++)
+                {
+                    data[i] = (float)samples[i] * mul;
+                }
+                filter.Process(data,sampleCount*channels);
+                for (int i = 0; i < sampleCount * channels; i++)
+                {
+                    var f = data[i];
+                    if (f > 1.0f)
+                    {
+                        f = 1.0f;
+                    }
+                    if (f < -1.0f)
+                    {
+                        f = -1.0f;
+                    }
+                   samples[i] = (short)(Math.Floor(f * 32767.0f));
+                }
+            }
+        }
+
 
         internal void Unmute(string clientName)
         {
@@ -293,6 +339,7 @@ namespace PureVoice
             }
         }
 
+      
         internal void RemoveMute(ushort clientId)
         {
             _UnmutedClients.TryRemove(clientId);
@@ -414,6 +461,7 @@ namespace PureVoice
             var c = GetClient(LocalClientId);
             if (c != null && c.ChannelID == IngameChannel)
             {
+                c.UnmuteClientsAfterMove = true;
                 c.JoinChannel(c.LastChannel);
                 c.SetNickName(LocalClientName);
             }
@@ -426,5 +474,51 @@ namespace PureVoice
             VoicePlugin.voiceClient.SendTalkStatusChanged(status == 1);
         }
 
+        private bool DoesFileExist(string filename)
+        {
+            return File.Exists(filename);
+        }
+        internal string GetEffectiveFilename(string name)
+        {
+            if (DoesFileExist(VoicePlugin.GetFilename("custom", name)))
+                return VoicePlugin.GetFilename("custom", name);
+            if (DoesFileExist(VoicePlugin.GetFilename(ServerHashString, name)))
+                return VoicePlugin.GetFilename(ServerHashString, name);
+            if (DoesFileExist(VoicePlugin.GetFilename("default", name)))
+                return VoicePlugin.GetFilename("default", name);
+            return null;
+        }
+
+        internal void PlaySound(string voiceSound, bool isLocal)
+        {
+            string soundFilename;
+            if (isLocal)
+            {
+                soundFilename = GetEffectiveFilename(voiceSound +"Local.wav");
+                if (!String.IsNullOrEmpty(soundFilename))
+                {
+                    PlaySound(soundFilename);
+                    return;
+                }
+
+            }
+            soundFilename = GetEffectiveFilename(voiceSound+".wav");
+            if (!String.IsNullOrEmpty(soundFilename) )
+            {
+                PlaySound(soundFilename);
+            }
+        }
+
+        internal void PlaySound(string soundFilename)
+        {
+            try
+            {
+                Check(Functions.playWaveFile(ID, soundFilename));
+            }
+            catch (Exception ex)
+            {
+                Log("ERROR can't play sound {0}: {1}", soundFilename, ex.ToString());
+            }
+        }
     }
 }

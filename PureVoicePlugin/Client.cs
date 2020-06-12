@@ -17,6 +17,7 @@ namespace PureVoice
         public string LastName;
         public TSVector Position;
         public float VolumeModifier;
+        public float SignalQuality = 1.0f;
         public bool IsTalking;
         public ulong ChannelID = 0;
         public ulong LastChannel = 1;
@@ -24,6 +25,9 @@ namespace PureVoice
         public bool IsSpeakersMuted = false;
         public bool IsLocalClient;
         public bool ShouldBeMuted = false;
+        public bool UnmuteClientsAfterMove = false;
+        public byte CurrentVoiceDistortion = 0;
+
         public bool IsMuted => GetBool(ClientProperty.CLIENT_IS_MUTED);
         public ulong CurrentChannel => GetClientChannel();
         public Channel Channel => Connection?.GetChannel(ChannelID);
@@ -87,7 +91,7 @@ namespace PureVoice
 
         public void OnChannelChanged(ulong newChannel)
         {
-            if (newChannel == 0)
+            if (newChannel == 0) // Disconnect
             {
                 Connection.RemoveClient(ID);
                 Connection = null;
@@ -100,6 +104,16 @@ namespace PureVoice
 
             if (ID == Connection.LocalClientId)
             {
+                if (UnmuteClientsAfterMove)
+                {
+                    UnmuteClientsAfterMove = false;
+                    Connection.UnmuteAll();
+                }
+                if (!VoicePlugin.IsConnectedToVoiceServer)
+                {
+                    return;
+                }
+                VoicePlugin.Log($"ChannelChange ServerGUID '{Connection.GUID}' New ChannelID '{newChannel}'");
                 if (newChannel == Connection.IngameChannel)
                 {
                     if (LastChannel == 1)
@@ -112,6 +126,7 @@ namespace PureVoice
                     LastChannel = newChannel;
                     Connection.GetChannel(newChannel).UnmuteAll(true);
                 }
+                
                 return;
             }
             if (Connection.IsInitialized)
@@ -134,7 +149,7 @@ namespace PureVoice
 
         internal void OnSelfVariableChanged(ClientProperty flag, string oldValue, string newValue)
         {
-            if (flag == ClientProperty.CLIENT_INPUT_MUTED)
+            if (flag == ClientProperty.CLIENT_INPUT_MUTED || flag == ClientProperty.CLIENT_INPUT_DEACTIVATED)
             {
                 IsMicrophoneMuted = newValue == "1";
                 VoicePlugin.voiceClient.SendMicrophoneStatusChanged(IsMicrophoneMuted);
@@ -176,10 +191,9 @@ namespace PureVoice
                 return String.Empty;
             }
             IntPtr retVal = IntPtr.Zero;
-            IntPtr flg = new IntPtr((int)flag);
             if (ID == Connection.LocalClientId)
             {
-                if (Functions.getClientSelfVariableAsString(Connection.ID, flag, ref retVal) == ERROR_OK)
+                if (Check(Functions.getClientSelfVariableAsString(Connection.ID, flag, ref retVal)))
                 {
                     var s = ReadString(retVal);
                     return s;
@@ -187,7 +201,7 @@ namespace PureVoice
             }
             else
             {
-                if (Functions.getClientVariableAsString(Connection.ID, ID, flag, ref retVal) == ERROR_OK)
+                if (Check(Functions.getClientVariableAsString(Connection.ID, ID, flag, ref retVal)))
                 {
                     var s = ReadString(retVal);
                     return s;
@@ -196,7 +210,7 @@ namespace PureVoice
             return String.Empty;
         }
 
-        
+
 
         private int GetInt(ClientProperty flag)
         {
@@ -207,7 +221,7 @@ namespace PureVoice
             }
             else
             {
-                Check(Functions.getClientVariableAsInt(Connection.ID, ID, (IntPtr)flag, out res));
+                Check(Functions.getClientVariableAsInt(Connection.ID, ID, flag, out res));
             }
             return res;
         }
@@ -218,7 +232,7 @@ namespace PureVoice
         }
 
 
-        internal void UpdatePosition(TSVector position, float volumeModifier, bool positionIsRelative,bool execMute = true)
+        internal void UpdatePosition(TSVector position, float volumeModifier, float signalQuality,byte voiceDistortion, bool positionIsRelative, bool execMute = true)
         {
             if (positionIsRelative)
             {
@@ -228,6 +242,9 @@ namespace PureVoice
             else
                 Position = position;
             VolumeModifier = volumeModifier;
+            SignalQuality = signalQuality;
+            //if (CurrentVoiceDistortion == 0)
+              CurrentVoiceDistortion = voiceDistortion;
             if (IsLocalClient)
             {
                 Check(Functions.systemset3DListenerAttributes(Connection.ID, Position, NullVector, NullVector));
@@ -240,6 +257,16 @@ namespace PureVoice
                     Unmute();
             }
 
+        }
+
+        internal void SetVoiceDistortion(byte voiceDistortion)
+        {
+            CurrentVoiceDistortion = voiceDistortion;
+        }
+
+        internal void ClearVoiceDistortion()
+        {
+            CurrentVoiceDistortion = 0;
         }
 
         internal void SetName(string displayName)
@@ -267,6 +294,67 @@ namespace PureVoice
             Connection.DoUnmute(ID);
         }
 
-        
+        internal unsafe void ProcessVoice(short* samples, int sampleCount, int channels)
+        {
+            if (CurrentVoiceDistortion != 0)
+                Connection.ProcessVoice(CurrentVoiceDistortion, samples, sampleCount, channels, SignalQuality);
+        }
+
+        internal void SetMetaData(string tag, string value)
+        {
+            if (!IsLocalClient)
+                return;
+            IntPtr retVal = IntPtr.Zero;
+            if (Check(Functions.getClientVariableAsString(Connection.ID, ID, ClientProperty.CLIENT_META_DATA, ref retVal)))
+            {
+                string metaData = ReadString(retVal);
+                string startTag = "<" + tag + ">";
+                string endTag = "</" + tag + ">";
+                if (!String.IsNullOrEmpty(metaData))
+                {
+                    var iStart = metaData.IndexOf(startTag);
+                    if (iStart >= 0)
+                    {
+                        var iEnd = metaData.IndexOf(endTag);
+                        metaData = metaData.Remove(iStart, iEnd - iStart + endTag.Length);
+                    }
+                }
+                else 
+                    metaData = "";
+                if (!String.IsNullOrEmpty(value))
+                    metaData = metaData + startTag + value + endTag;
+                if (Check(Functions.setClientSelfVariableAsString(Connection.ID,ClientProperty.CLIENT_META_DATA,metaData)))
+                {
+                    Check(Functions.flushClientSelfUpdates(Connection.ID, null));
+                }
+            }
+        }
+
+        internal string GetMetaData(string tag)
+        {
+            IntPtr retVal = IntPtr.Zero;
+            if (Check(Functions.getClientVariableAsString(Connection.ID, ID, ClientProperty.CLIENT_META_DATA, ref retVal)))
+            {
+                string metaData = ReadString(retVal);
+                string startTag = "<" + tag + ">";
+                string endTag = "</" + tag + ">";
+                if (!String.IsNullOrEmpty(metaData))
+                {
+                    var iStart = metaData.IndexOf(startTag);
+                    if (iStart >= 0)
+                    {
+                        var iEnd = metaData.IndexOf(endTag);
+                        if (iEnd >= iStart+startTag.Length)
+                            return metaData.Substring(iStart + startTag.Length, iEnd - iStart + startTag.Length);
+                    }
+                }
+            }
+            return String.Empty;
+        }
+
+        internal void RemoveMetaData(string tag)
+        {
+            SetMetaData(tag, null);
+        }
     }
 }

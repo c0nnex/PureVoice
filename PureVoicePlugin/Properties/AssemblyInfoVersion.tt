@@ -6,9 +6,9 @@
 
 using System.Reflection;
 
-[assembly: AssemblyVersion("0.2.<#= this.RevisionNumber #>.<#= this.BuildNumber #>")]
-[assembly: AssemblyFileVersion("0.2.<#= this.RevisionNumber #>.<#= this.BuildNumber #>")]
+[assembly: AssemblyVersion("0.3.<#= this.RevisionNumber #>.<#= this.BuildNumber #>")]
+[assembly: AssemblyFileVersion("0.3.<#= this.RevisionNumber #>.<#= this.BuildNumber #>")]
 <#+
-    int RevisionNumber = (int)(DateTime.UtcNow - new DateTime(2016,1,1)).TotalDays;
+    int RevisionNumber = (int)(DateTime.UtcNow - new DateTime(2020,04,10)).TotalDays;
     int BuildNumber = (int)(DateTime.UtcNow.Subtract(DateTime.UtcNow.Date)).TotalMinutes/2;
 #>

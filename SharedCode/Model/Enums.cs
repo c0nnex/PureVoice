@@ -10,4 +10,6 @@ namespace PureVoice
         Identity = 1,
         Both = 2
     }
+
+
 }

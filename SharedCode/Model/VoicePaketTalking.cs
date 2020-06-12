@@ -4,7 +4,7 @@ using System.Text;
 
 namespace PureVoice.VoiceClient.Model
 {
-    class VoicePaketTalking : IVoicePaketModel
+    class VoicePaketTalking 
     {
         public bool IsTalking { get; set; }
 
@@ -12,7 +12,7 @@ namespace PureVoice.VoiceClient.Model
         public VoicePaketTalking(bool isTalking) { IsTalking = isTalking; }
     }
 
-    class VoicePaketMicrophoneState : IVoicePaketModel
+    class VoicePaketMicrophoneState
     {
         public bool IsMuted { get; set; }
 
@@ -20,7 +20,7 @@ namespace PureVoice.VoiceClient.Model
         public VoicePaketMicrophoneState(bool isMuted) { IsMuted = isMuted; }
     }
 
-    class VoicePaketSpeakersState : IVoicePaketModel
+    class VoicePaketSpeakersState
     {
         public bool IsMuted { get; set; }
 

@@ -1,4 +1,5 @@
 ﻿using PureVoice;
+using PureVoice.DSP;
 using RGiesecke.DllExport;
 using System;
 using System.Diagnostics;
@@ -14,11 +15,12 @@ namespace TeamSpeakPlugin
     {
         #region [ REQUIRED METHODS ]
 
+        public static object lockObject = new object();
         /// <summary>
         /// Send the plugin name to TeamSpeak.
         /// </summary>
         /// <returns>The plugin name.</returns>
-        [DllExport]
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
         public static String ts3plugin_name()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
@@ -29,7 +31,7 @@ namespace TeamSpeakPlugin
         /// Send the plugin version to TeamSpeak.
         /// </summary>
         /// <returns>The plugin version.</returns>
-        [DllExport]
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
         public static String ts3plugin_version()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
@@ -40,7 +42,7 @@ namespace TeamSpeakPlugin
         /// Send the api version to TeamSpeak.
         /// </summary>
         /// <returns>The API version.</returns>
-        [DllExport]
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
         public static int ts3plugin_apiVersion()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
@@ -51,7 +53,7 @@ namespace TeamSpeakPlugin
         /// Send the plugin author to TeamSpeak.
         /// </summary>
         /// <returns>The author.</returns>
-        [DllExport]
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
         public static String ts3plugin_author()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
@@ -62,45 +64,56 @@ namespace TeamSpeakPlugin
         /// Send the plugin description to TeamSpeak.
         /// </summary>
         /// <returns>The plugin description.</returns>
-        [DllExport]
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
         public static String ts3plugin_description()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
             return VoicePlugin.Description;
         }
 
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
+        public static int ts3plugin_requestAutoload()
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            return 0;
+        }
+
         /// <summary>
         /// Gets the functions from TeamSpeak.
         /// </summary>
         /// <param name="functionsFromTeamSpeak">The function pointers.</param>
-        [DllExport]
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
         public static void ts3plugin_setFunctionPointers(TS3Functions functionsFromTeamSpeak)
         {
-            try
-            {
-                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                VoicePlugin.SetFunctionPointer(functionsFromTeamSpeak);
-                TeamSpeakBase.SetFunctionPointer(functionsFromTeamSpeak);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log(ex.ToString());
-            }
+
+            lock (lockObject) try
+                {
+                    VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                    VoicePlugin.SetFunctionPointer(functionsFromTeamSpeak);
+                    TeamSpeakBase.SetFunctionPointer(functionsFromTeamSpeak);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log(ex.ToString());
+                }
         }
 
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
+        public static void ts3plugin_freeMemory(IntPtr ptr)
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            Marshal.FreeHGlobal(ptr);
+        }
         /// <summary>
         /// Initializes the plugin.
         /// </summary>
         /// <returns></returns>
-        [DllExport]
+        [DllExport(CallingConvention = CallingConvention.Cdecl)]
         public static int ts3plugin_init()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-#if false
-            return VoicePlugin.InitAsync().GetAwaiter().GetResult();
-#else
-            return VoicePlugin.InitAsync();
-#endif
+            VoicePlugin.PluginInitialize();
+            return 0;
         }
 
         /// <summary>
@@ -122,6 +135,20 @@ namespace TeamSpeakPlugin
         #endregion [ REQUIRED METHODS ]
 
         [DllExport]
+        public static string ts3plugin_commandKeyword()
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            return "";
+        }
+
+        [DllExport]
+        public static string ts3plugin_infoTitle()
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            return "PureVoice";
+        }
+
+        [DllExport]
         public static int ts3plugin_offersConfigure()
         {
             VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
@@ -133,6 +160,32 @@ namespace TeamSpeakPlugin
              */
             return 0;  /* In this case ts3plugin_configure does not need to be implemented */
         }
+
+        [DllExport]
+        public static void ts4plugin_infoData(ulong serverConnectionHandlerID, ulong id, PluginType type, ref string data)
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            switch (type)
+            {
+                case PluginType.PLUGIN_SERVER:
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                    {
+                        data = "Server GUID: " + VoicePlugin.GetConnection(serverConnectionHandlerID).GUID;
+                    }
+                    break;
+                case PluginType.PLUGIN_CHANNEL:
+                    data = "Channel ID: " + id;
+                    break;
+                case PluginType.PLUGIN_CLIENT:
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        data = VoicePlugin.GetConnection(serverConnectionHandlerID)?.GetKnownClient((ushort)id)?.GetMetaData("PureVoice");
+                    break;
+                default:
+                    data = null;
+                    break;
+            }
+        }
+
 #if true
         #region [ USED METHODS ]
 
@@ -145,15 +198,15 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onConnectStatusChangeEvent(ulong serverConnectionHandlerID, int newStatus, uint errorNumber)
         {
-            try
-            {
-                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                VoicePlugin.OnConnectionStatusChanged(serverConnectionHandlerID, (ConnectionStatusEnum)newStatus, errorNumber);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+            lock (lockObject) try
+                {
+                    VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                    VoicePlugin.OnConnectionStatusChanged(serverConnectionHandlerID, (ConnectionStatusEnum)newStatus, errorNumber);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
 
         }
 
@@ -165,19 +218,21 @@ namespace TeamSpeakPlugin
         /// <param name="invokerID">Updater ID.</param>
         /// <param name="invokerName">Updater name.</param>
         /// <param name="invokerUniqueIdentifier">Updater UID.</param>
-        [DllExport]
+        //[DllExport]
         public static void ts3plugin_onUpdateClientEvent(ulong serverConnectionHandlerID, ushort clientID, ushort invokerID, string invokerName, string invokerUniqueIdentifier)
         {
-            try
-            {
-                VoicePlugin.VerboseLog("{0} {1}", MethodInfo.GetCurrentMethod().Name, clientID);
-                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
-                    VoicePlugin.GetConnection(serverConnectionHandlerID)?.GetKnownClient(clientID)?.Update();
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+            VoicePlugin.VerboseLog("{0} {1}", MethodInfo.GetCurrentMethod().Name, clientID);
+            if (!VoicePlugin.IsConnectedToVoiceServer)
+                return;
+            lock (lockObject) try
+                {
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        VoicePlugin.GetConnection(serverConnectionHandlerID)?.GetKnownClient(clientID)?.Update();
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
         }
 
         /// <summary>
@@ -192,108 +247,115 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientMoveEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, string moveMessage)
         {
-            try
-            {
-                VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
-                if (!VoicePlugin.HasConnection(serverConnectionHandlerID))
-                    return;
-                if (newChannelID == 0) // Someone Disconnected
+            lock (lockObject) try
                 {
-                    VoicePlugin.GetConnection(serverConnectionHandlerID).RemoveClient(clientID);
-                    return;
+                    if (!VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        return;
+                    if (newChannelID == 0) // Someone Disconnected
+                    {
+                        VoicePlugin.GetConnection(serverConnectionHandlerID).RemoveClient(clientID);
+                        return;
+                    }
+                    VoicePlugin.VerboseLog("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+                    var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
+                    cl?.OnChannelChanged(newChannelID);
                 }
-                var cn = VoicePlugin.GetConnection(serverConnectionHandlerID);
-                cn.Init();
-                var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
-                cl.OnChannelChanged(newChannelID);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
 
         }
 
         [DllExport]
         public static void ts3plugin_onClientMoveMovedEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, ushort moverID, string moverName, string moverUniqueIdentifier, string moveMessage)
         {
-            try
-            {
-                VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
-                if (!VoicePlugin.HasConnection(serverConnectionHandlerID))
-                    return;
-                var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
-                if (oldChannelID == 0) // New User connected
-                    cl.Update();
-                cl.OnChannelChanged(newChannelID);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+            VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+            if (!VoicePlugin.IsConnectedToVoiceServer)
+                return;
+
+            lock (lockObject) try
+                {
+                    if (!VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        return;
+                    var cl = VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID);
+                    if (oldChannelID == 0) // New User connected
+                        cl.Update();
+                    cl.OnChannelChanged(newChannelID);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
 
         }
 
         [DllExport]
         public static void ts3plugin_onClientMoveTimeoutEvent(ulong serverConnectionHandlerID, ushort clientID, ulong oldChannelID, ulong newChannelID, int visibility, string timeoutMessage)
         {
-            try
-            {
-                VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
-                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
-                    VoicePlugin.GetConnection(serverConnectionHandlerID).GetKnownClient(clientID)?.OnChannelChanged(newChannelID);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+            VoicePlugin.Log("{0} {1}: {2} => {3} v:{4} ", MethodInfo.GetCurrentMethod().Name, clientID, oldChannelID, newChannelID, visibility);
+            if (!VoicePlugin.IsConnectedToVoiceServer)
+                return;
+
+            lock (lockObject) try
+                {
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        VoicePlugin.GetConnection(serverConnectionHandlerID).GetKnownClient(clientID)?.OnChannelChanged(newChannelID);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
 
         }
 
         [DllExport]
         public static int ts3plugin_onServerErrorEvent(ulong serverConnectionHandlerID, string errorMessage, uint error, string returnCode, string extraMessage)
         {
-            try
-            {
-                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                if (!string.IsNullOrEmpty(returnCode))
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            lock (lockObject) try
                 {
-                    if (error != 0)
+                    if (!string.IsNullOrEmpty(returnCode))
                     {
-                        VoicePlugin.Log("ERROR: {0} ({1} {2} {3})", errorMessage, error, returnCode, extraMessage);
-                        var rCode = VoicePlugin.ReturnCodeToPluginReturnCode(returnCode);
-                        if (rCode == PluginReturnCode.JOINCHANNEL)
+                        if (error != 0)
                         {
-                            if (error != 770)
-                                VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient.JoinDefaultChannel();
+                            VoicePlugin.Log("ERROR: {0} ({1} {2} {3})", errorMessage, error, returnCode, extraMessage);
+                            var rCode = VoicePlugin.ReturnCodeToPluginReturnCode(returnCode);
+                            if (rCode == PluginReturnCode.JOINCHANNEL)
+                            {
+                                if (error != 770)
+                                    VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient.JoinDefaultChannel();
+                            }
                         }
+                        return 1;
                     }
-                    return 1;
+                    return 0;
                 }
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-                return 0;
-            }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                    return 0;
+                }
 
         }
 
         [DllExport]
         public static void ts3plugin_onTalkStatusChangeEvent(ulong serverConnectionHandlerID, int status, int isReceivedWhisper, ushort clientID)
         {
-            try
-            {
-                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                // VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
-                    VoicePlugin.GetConnection(serverConnectionHandlerID).ClientTalkStatusChanged(clientID, status, isReceivedWhisper);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            if (!VoicePlugin.IsConnectedToVoiceServer)
+                return;
+
+            lock (lockObject) try
+                {
+                    // VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        VoicePlugin.GetConnection(serverConnectionHandlerID).ClientTalkStatusChanged(clientID, status, isReceivedWhisper);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
 
         }
 
@@ -307,16 +369,19 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientDisplayNameChanged(ulong serverConnectionHandlerID, ushort clientID, string displayName, string uniqueClientIdentifier)
         {
-            try
-            {
-                VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
-                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
-                    VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).SetName(displayName);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            if (!VoicePlugin.IsConnectedToVoiceServer)
+                return;
+
+            lock (lockObject) try
+                {
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).SetName(displayName);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
 
         }
 
@@ -330,19 +395,73 @@ namespace TeamSpeakPlugin
         [DllExport]
         public static void ts3plugin_onClientSelfVariableUpdateEvent(ulong serverConnectionHandlerID, int flag, string oldValue, string newValue)
         {
-            try
-            {
-                VoicePlugin.VerboseLog("{0} {1} o:{2} n:{3}", MethodInfo.GetCurrentMethod().Name, (ClientProperty)flag, oldValue, newValue);
-                if (VoicePlugin.HasConnection(serverConnectionHandlerID))
-                    VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient?.OnSelfVariableChanged((ClientProperty)flag, oldValue, newValue);
-            }
-            catch (Exception ex)
-            {
-                VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
-            }
+            VoicePlugin.VerboseLog("{0} {1} o:{2} n:{3}", MethodInfo.GetCurrentMethod().Name, (ClientProperty)flag, oldValue, newValue);
+            if (!VoicePlugin.IsConnectedToVoiceServer)
+                return;
+
+            lock (lockObject) try
+                {
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        VoicePlugin.GetConnection(serverConnectionHandlerID).LocalClient?.OnSelfVariableChanged((ClientProperty)flag, oldValue, newValue);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
 
         }
 
+        [DllExport]
+        public unsafe static void ts3plugin_onEditPlaybackVoiceDataEvent(ulong serverConnectionHandlerID, ushort clientID, short* samples, int sampleCount, int channels)
+        {
+            if (!VoicePlugin.IsConnectedToVoiceServer)
+                return;
+
+            lock (lockObject) try
+                {
+                    if (VoicePlugin.HasConnection(serverConnectionHandlerID))
+                        VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).ProcessVoice(samples, sampleCount, channels);
+                }
+                catch (Exception ex)
+                {
+                    VoicePlugin.Log("Excepion in {0} : {1}", MethodInfo.GetCurrentMethod().Name, ex.Message);
+                }
+            //VoicePlugin.ProcessVoice(clientIsamples, sampleCount, channels, 1.0f);
+        }
+        /*
+        [DllExport]
+        public static void ts3plugin_onEditPostProcessVoiceDataEvent(ulong serverConnectionHandlerID, ushort clientID, short samples, int sampleCount, int channels, uint channelSpeakerArray, uint channelFillMask)
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+        }
+        */
+        /*
+        [DllExport]
+        public static void ts3plugin_onEditMixedPlaybackVoiceDataEvent(ulong serverConnectionHandlerID, short samples, int sampleCount, int channels, uint channelSpeakerArray, uint channelFillMask)
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+        }
+
+        [DllExport]
+        public static void ts3plugin_onEditCapturedVoiceDataEvent(ulong serverConnectionHandlerID, short samples, int sampleCount, int channels, int edited)
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+        }
+        
+        [DllExport]
+        public static void ts3plugin_onCustom3dRolloffCalculationClientEvent(ulong serverConnectionHandlerID, ushort clientID, float distance, ref float volume)
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+            //VoicePlugin.Log("ROllOff { VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);0} { VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);1} { VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);2}", clientID, distance, volume);
+            //VoicePlugin.GetConnection(serverConnectionHandlerID).GetClient(clientID).ModifyVolume(distance, ref volume);
+        }
+
+        [DllExport]
+        public static void ts3plugin_onCustom3dRolloffCalculationWaveEvent(ulong serverConnectionHandlerID, ulong waveHandle, float distance, float volume)
+        {
+            VoicePlugin.VerboseLog(MethodInfo.GetCurrentMethod().Name);
+        }
+        */
         #endregion
 
 #endif

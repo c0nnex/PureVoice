@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>f6dcdf08-8192-41de-9733-dc106150a441</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>LiteNetLib</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)BaseChannel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ConnectionRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)INetEventListener.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Layers\Crc32cLayer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Layers\PacketLayerBase.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Layers\XorEncryptLayer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NatPunchModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetConstants.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetDebug.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetExceptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetPacket.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetPacketPool.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetPeer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetSocket.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetStatistics.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ReliableChannel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SequencedChannel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\CRC32C.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\FastBitConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\INetSerializable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\NetDataReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\NetDataWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\NetPacketProcessor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\NetSerializer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\NtpPacket.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\NtpRequest.cs" />
+  </ItemGroup>
+</Project>

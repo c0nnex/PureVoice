@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>e709f503-e6ff-4bf7-a9b6-59cb85636452</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>PureVoice.DSP</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Effects\Tremolo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Effects\Amplify.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Effects\FoldBack.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Effects\RingModulate.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Filters\BiQuad.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Filters\ButterworthLowPassFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Effects\Echo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Filters\HighpassFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IVoiceFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Filters\LowpassFilter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Presets\LongRangeRadio.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Presets\Default.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Presets\ShortRangeRadio.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Presets\Phone.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Presets\Megaphone.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Effects\PinkNoise.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="$(MSBuildThisFileDirectory)Filters\" />
+  </ItemGroup>
+</Project>

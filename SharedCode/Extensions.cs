@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LiteNetLib;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +13,16 @@ namespace PureVoice
 {
     internal static class Extensions
     {
+        public static bool IsConnected(this NetManager netManager)
+        {
+            if (netManager == null)
+                return false;
+            if (netManager.ConnectedPeersCount == 0)
+                return false;
+            if (netManager.GetPeersCount(ConnectionState.Connected) != 1)
+                return false;
+            return true;
+        }
         public static Task DelayedCall<T>(this T obj, int delayMilliseconds, Action<T> act)
         {
             return (new Func<T, Task>((p) => Task.Delay(delayMilliseconds).ContinueWith((t) => { try { act(p); } catch (Exception ex) { Debug.WriteLine(ex.ToString()); } }))).Invoke(obj);
@@ -49,7 +60,7 @@ namespace PureVoice
                 catch (Exception ex) { Debug.WriteLine(ex.ToString()); }
             }))).Invoke(obj, arg, arg1, arg2);
         }
-
+#if !PUREVOICE_INTEGRATED
         public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
         {
             Contract.Requires(enumerable != null);
@@ -58,11 +69,11 @@ namespace PureVoice
             foreach (var item in enumerable)
                 action(item);
         }
-
-        public static string HexDump(this byte[] bytes, int bytesPerLine = 16)
+#endif
+        public static string HexDump(this byte[] bytes, int start = 0, int size = -1, int bytesPerLine = 16)
         {
             if (bytes == null) return "<null>";
-            int bytesLength = bytes.Length;
+            int bytesLength = size == -1 ? bytes.Length : size;
 
             char[] HexChars = "0123456789ABCDEF".ToCharArray();
 
@@ -83,7 +94,7 @@ namespace PureVoice
             int expectedLines = (bytesLength + bytesPerLine - 1) / bytesPerLine;
             StringBuilder result = new StringBuilder(expectedLines * lineLength);
 
-            for (int i = 0; i < bytesLength; i += bytesPerLine)
+            for (int i = start; i < bytesLength; i += bytesPerLine)
             {
                 line[0] = HexChars[(i >> 28) & 0xF];
                 line[1] = HexChars[(i >> 24) & 0xF];
@@ -121,10 +132,7 @@ namespace PureVoice
             return result.ToString();
         }
     }
-}
 
-namespace ConcurrentCollections
-{
     /// <summary>
     /// Represents a thread-safe hash-based unique collection.
     /// </summary>
@@ -134,7 +142,7 @@ namespace ConcurrentCollections
     /// concurrently from multiple threads.
     /// </remarks>
     [DebuggerDisplay("Count = {Count}")]
-    internal class ConcurrentHashSet<T> : IReadOnlyCollection<T>, ICollection<T>
+    public class ConcurrentHashSet<T> : IReadOnlyCollection<T>, ICollection<T>
     {
         private const int DefaultCapacity = 31;
         private const int MaxLockNumber = 1024;

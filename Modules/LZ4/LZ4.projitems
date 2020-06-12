@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>3ca12c60-3e6f-4beb-9cac-b60737ef22c5</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>LZ4</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)lz4-structures.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)lz4.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4FrameBlockMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4FrameBlockSize.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4FrameChecksumMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4RawUtility.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4Stream.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4StreamMode.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4UserDataFrameEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4Utility.cs" />
+  </ItemGroup>
+</Project>

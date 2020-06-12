@@ -467,7 +467,7 @@ public delegate uint TS3Functions_flushClientSelfUpdates(ulong serverConnectionH
 ///clientID: anyID->unsigned short
 ///flag: size_t->uint
 ///result: int
-public delegate Error TS3Functions_getClientVariableAsInt(ulong serverConnectionHandlerID, ushort clientID, IntPtr flag, out int result);
+public delegate uint TS3Functions_getClientVariableAsInt(ulong serverConnectionHandlerID, ushort clientID, ClientProperty flag, out int result);
 
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64
@@ -499,21 +499,21 @@ public delegate uint TS3Functions_getChannelOfClient(ulong serverConnectionHandl
 ///channelID: uint64->unsigned __int64
 ///flag: size_t->uint
 ///result: int
-public delegate uint TS3Functions_getChannelVariableAsInt(ulong serverConnectionHandlerID, ulong channelID, IntPtr flag, ref int result);
+public delegate uint TS3Functions_getChannelVariableAsInt(ulong serverConnectionHandlerID, ulong channelID, ChannelProperty flag, ref int result);
 
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64
 ///channelID: uint64->unsigned __int64
 ///flag: size_t->uint
 ///result: uint64*
-public delegate uint TS3Functions_getChannelVariableAsUInt64(ulong serverConnectionHandlerID, ulong channelID, IntPtr flag, ref ulong result);
+public delegate uint TS3Functions_getChannelVariableAsUInt64(ulong serverConnectionHandlerID, ulong channelID, ChannelProperty flag, ref ulong result);
 
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64
 ///channelID: uint64->unsigned __int64
 ///flag: size_t->uint
 ///result: char**
-public delegate uint TS3Functions_getChannelVariableAsString(ulong serverConnectionHandlerID, ulong channelID, IntPtr flag, ref IntPtr result);
+public delegate uint TS3Functions_getChannelVariableAsString(ulong serverConnectionHandlerID, ulong channelID, ChannelProperty flag, ref IntPtr result);
 
 /// Return Type: uint
 ///serverConnectionHandlerID: uint64->unsigned __int64
@@ -1336,7 +1336,7 @@ public delegate uint TS3Functions_getPermissionIDByName(ulong serverConnectionHa
 ///permissionName: char*
 ///result: int
 public delegate uint TS3Functions_getClientNeededPermission(ulong serverConnectionHandlerID, [In] [MarshalAs(UnmanagedType.LPStr)] string permissionName, ref int result);
-
+public delegate void TS3Functions_notifyKeyEvent([In] [MarshalAs(UnmanagedType.LPStr)] string pluginID, [In] [MarshalAs(UnmanagedType.LPStr)] string keyId, int up_down);
 #endregion [ DELEGATED METHODS ]
 
 [StructLayoutAttribute(LayoutKind.Sequential)]
@@ -2191,5 +2191,8 @@ public struct TS3Functions
     /// Gets needed permission for the client.
     /// </summary>
     public TS3Functions_getClientNeededPermission getClientNeededPermission;
+
+    public TS3Functions_notifyKeyEvent notifyKeyEvent;
+
 }
 

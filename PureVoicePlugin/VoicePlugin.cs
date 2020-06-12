@@ -1,7 +1,9 @@
-﻿using System;
+﻿using PureVoice.DSP;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
@@ -13,7 +15,7 @@ using TeamSpeakPlugin;
 
 namespace PureVoice
 {
-    public class VoicePlugin
+    class VoicePlugin : TeamSpeakBase
     {
         /// <summary>
         /// Create a plugin instance.
@@ -23,7 +25,6 @@ namespace PureVoice
         /// <summary>
         /// The functions from the TeamSpeak.
         /// </summary>
-        internal static TS3Functions Functions { get; private set; }
 
         private static ConcurrentDictionary<ulong, Connection> Connections;
 
@@ -45,7 +46,7 @@ namespace PureVoice
         /// The API version.
         /// <para>Always check this, if error while loading plugin.</para>
         /// </summary>
-        public static int API_VERSION = 23;
+        public static int API_VERSION = 24;
 
         /// <summary>
         /// Author name.
@@ -58,61 +59,131 @@ namespace PureVoice
         public static String Description = "PureVoice Teamspeak 3 Plugin";
 
         public static String PluginID = "";
+        public static string StartTag = "<PureVoice>";
+        public static string EndTag = "</PureVoice>";
+
+        private static string _BaseDirectory;
+        public static string BaseDirectory => _BaseDirectory ?? (_BaseDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "PureVoice"));
+
+        public static bool IsConnectedToVoiceServer { get; set; } = false;
+
         private static Dictionary<PluginReturnCode, string> _pluginReturnCodes;
 
         private static bool _FunctionsSet = false;
-#if false
-        internal static async System.Threading.Tasks.Task<int> InitAsync()
-#else
-        internal static int InitAsync()
-#endif
+        private static object LockObject = new object();
+        public static bool HasBeenInitialized = false;
+        public static bool HasBeenActivatedBefore = false;
+        private static bool VerboseLogging = false;
+
+        internal static void Init([CallerMemberName] string tag = null, [CallerFilePath] string code = null, [CallerLineNumber] int codeLine = 0)
         {
-            Log("Initializing {0}", PluginVersion);
-
-            Connections = new ConcurrentDictionary<ulong, Connection>();
-            _pluginReturnCodes = new Dictionary<PluginReturnCode, string>();
-
-            foreach (PluginReturnCode code in Enum.GetValues(typeof(PluginReturnCode)))
+            if (HasBeenInitialized)
+                return;
             {
-                var sb = new StringBuilder(255);
-                Functions.createReturnCode(PluginID, sb, 255);
-                _pluginReturnCodes[code] = sb.ToString();
-                Log("{0} => {1}", code, sb.ToString());
-            }
-#if false
-            HttpClient client = new HttpClient();
-            client.Timeout = TimeSpan.FromSeconds(2);
-            try
-            {
-                string v = await client.GetStringAsync(VersionCheckUrl);
-                if (!String.IsNullOrEmpty(v))
+                AppDomain.CurrentDomain.FirstChanceException += CurrentDomain_FirstChanceException;
+                AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+                try
                 {
-                    if (Version.TryParse(v,out var reqVersion))
+                    VerboseLogging |= File.Exists(Path.Combine(BaseDirectory, "VERBOSE"));
+                }
+                catch { }
+                Log("Initializing {0}", PluginVersion);
+                VerboseLog("{0} {1}:{2})", tag, code, codeLine);
+                Connections = new ConcurrentDictionary<ulong, Connection>();
+                if (_pluginReturnCodes == null)
+                {
+                    _pluginReturnCodes = new Dictionary<PluginReturnCode, string>();
+
+                    foreach (PluginReturnCode pcode in Enum.GetValues(typeof(PluginReturnCode)))
                     {
-                        if (reqVersion > PluginVersion)
-                        {
-                            MessageBox.Show($"{Name} veraltet. Version {reqVersion} wird benötigt. Bitte aktualisieren.", "GT-MP Voice Plugin Fehler");
-                            return -1;
-                        }
+                        var sb = new StringBuilder(255);
+                        Functions.createReturnCode(PluginID, sb, 255);
+                        _pluginReturnCodes[pcode] = sb.ToString();
+                        Log("{0} => {1}", pcode, sb.ToString());
+                    }
+                }
+                voiceClient = new VoiceClient.VoiceClient();
+                voiceClient.OnDisconnected += VoiceClient_OnDisconnected;
+                HasBeenInitialized = true;
+                HasBeenActivatedBefore = true;
+                PluginInitialize();
+                return;
+                IntPtr serverList = IntPtr.Zero;
+                if (Functions.getServerConnectionHandlerList(ref serverList) == 0)
+                {
+                    var servers = TeamSpeakBase.ReadLongIDList(serverList, GetOrAddConnection);
+                    Log("{0} already connected Servers", servers.Count);
+                    servers.Where(c => c.ID != 0).ForEach(c => OnConnectionStatusChanged(c.ID, ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED, 0));
+                }
+                return;
+            }
+        }
+
+        public static void PluginInitialize()
+        {
+            if (HasBeenActivatedBefore)
+            {
+                ulong serverID = Functions.getCurrentServerConnectionHandlerID();
+                if (serverID > 0)
+                {
+                    VerboseLog("already connected to " + serverID);
+                    int result = 0;
+                    if (Check(Functions.getConnectionStatus(serverID, ref result)))
+                    {
+                        if ((ConnectionStatusEnum)result == ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED)
+                            OnConnectionStatusChanged(serverID, ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED, 0);
                     }
                 }
             }
-            catch(Exception ex)
+        }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            Log("FirstChance " + e.ExceptionObject?.ToString());
+        }
+
+        private static void CurrentDomain_FirstChanceException(object sender, System.Runtime.ExceptionServices.FirstChanceExceptionEventArgs e)
+        {
+            if (e.Exception is ObjectDisposedException)
             {
-                Log("Could not check version: {0}", ex.Message);
+                VerboseLog("Unhandled " + e.Exception?.ToString());
+                return;
             }
-#endif
-            IntPtr serverList = IntPtr.Zero;
-            if (Functions.getServerConnectionHandlerList(ref serverList) == 0)
+            Log("Unhandled " + e.Exception?.ToString());
+            if (e.Exception.InnerException != null)
+                Log("Inner" + e.Exception.InnerException?.ToString());
+        }
+
+        internal static string GetFilename(string name)
+        {
+            return Path.Combine(BaseDirectory, name);
+        }
+
+        internal static string GetFilename(string subDir, string name)
+        {
+            return Path.Combine(BaseDirectory, subDir, name);
+        }
+
+        internal static uint Hash(string stringToHash)
+        {
+            if (string.IsNullOrEmpty(stringToHash)) return 0;
+
+            var characters = Encoding.UTF8.GetBytes(stringToHash.ToLower());
+
+            uint hash = 0;
+
+            foreach (var c in characters)
             {
-                var servers = TeamSpeakBase.ReadLongIDList(serverList, GetConnection);
-                Log("{0} already connected Servers", servers.Count);
-                servers.Where(c => c.ID != 0).ForEach(c => OnConnectionStatusChanged(c.ID, ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED, 0));
+                hash += c;
+                hash += hash << 10;
+                hash ^= hash >> 6;
             }
-            voiceClient = new VoiceClient.VoiceClient();
-            voiceClient.OnDisconnected += VoiceClient_OnDisconnected;
-            voiceClient.AcceptConnections();
-            return 0;
+
+            hash += hash << 3;
+            hash ^= hash >> 11;
+            hash += hash << 15;
+
+            return hash;
         }
 
         internal static void RegisterPluginID(string pluginStr)
@@ -123,6 +194,7 @@ namespace PureVoice
 
         internal static string GetReturnCode(PluginReturnCode code)
         {
+            VoicePlugin.Init();
             if (_pluginReturnCodes.TryGetValue(code, out var codeStr))
                 return codeStr;
             return String.Empty;
@@ -130,6 +202,7 @@ namespace PureVoice
 
         internal static PluginReturnCode ReturnCodeToPluginReturnCode(string inStr)
         {
+            VoicePlugin.Init();
             foreach (var item in _pluginReturnCodes)
             {
                 if (item.Value == inStr)
@@ -145,14 +218,15 @@ namespace PureVoice
             try
             {
                 voiceClient?.Shutdown();
-                if (Connections.Count > 0)
+                if (Connections != null && Connections.Count > 0)
                 {
                     Connections.Values.ToList().Where(c => c.IsVoiceEnabled).ForEach(c => c.DisconnectVoiceServer());
                 }
-                Connections.Clear();
+                Connections?.Clear();
                 Connections = null;
                 voiceClient = null;
                 _FunctionsSet = false;
+                HasBeenInitialized = false;
             }
             catch (Exception ex)
             {
@@ -166,29 +240,51 @@ namespace PureVoice
         }
 
 
-       // [Conditional("DEBUG")]
+        //[Conditional("DEBUG")]
         internal static void VerboseLog(string str, params object[] args)
         {
-            Log(str, args);
+            if (VerboseLogging)
+                Log(str, args);
+        }
+
+        internal static void VerboseLog(Func<string> f)
+        {
+            if (VerboseLogging)
+                Log(f());
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        internal static void Log(Func<string> f)
+        {
+            Log(f());
         }
 
         [MethodImpl(MethodImplOptions.Synchronized)]
         internal static void Log(string str, params object[] args)
         {
-            if (args == null || args.Length == 0)
+            try
             {
-                Trace.WriteLine(str);
-                if (_FunctionsSet)
-                    Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
+                lock (LockObject)
+                {
+                    if (args == null || args.Length == 0)
+                    {
+                        Trace.WriteLine(str);
+                        if (_FunctionsSet)
+                            Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
+                    }
+                    else
+                    {
+                        str = String.Format(str, args);
+                        Trace.WriteLine(str);
+                        if (_FunctionsSet)
+                            Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
 
+                    }
+                }
             }
-            else
+            catch (Exception ex)
             {
-                str = String.Format(str, args);
-                Trace.WriteLine(str);
-                if (_FunctionsSet)
-                    Functions.logMessage(str, LogLevel.LogLevel_DEVEL, "PureVoice", (ulong)Thread.CurrentThread.ManagedThreadId);
-
+                Trace.WriteLine(ex.ToString());
             }
         }
 
@@ -200,32 +296,43 @@ namespace PureVoice
 
         internal static bool HasConnection(ulong id)
         {
+            VoicePlugin.Init();
             return Connections.ContainsKey(id);
         }
 
         internal static Connection GetConnection(ulong id)
         {
+            VoicePlugin.Init();
+            if (!Connections.TryGetValue(id, out var con) || !con.IsInitialized)
+                return null;
+            return con;
+        }
+        internal static Connection GetOrAddConnection(ulong id)
+        {
+            VoicePlugin.Init();
             var con = Connections.GetOrAdd(id, _ => new Connection(id));
-            con.Init();
             return con;
         }
 
         internal static Connection GetConnection(string guid)
         {
+            VoicePlugin.Init();
             var con = Connections.Values.FirstOrDefault(c => c.GUID == guid);
-            con.Init();
+            if (con == null || !con.IsInitialized)
+                return null;
             return con;
         }
 
-        internal static Connection GetFirstConnection() => Connections.Values.FirstOrDefault(c => c.IsConnected && c.IsInitialized);
+
         internal static void OnConnectionStatusChanged(ulong serverConnectionHandlerID, ConnectionStatusEnum newStatus, uint errorNumber)
         {
+            VoicePlugin.Init();
             if (newStatus == ConnectionStatusEnum.STATUS_DISCONNECTED)
             {
                 Connections.TryRemove(serverConnectionHandlerID, out var unused);
                 return;
             }
-            var con = GetConnection(serverConnectionHandlerID);
+            var con = GetOrAddConnection(serverConnectionHandlerID);
             con.Status = newStatus;
             switch (newStatus)
             {
@@ -239,8 +346,9 @@ namespace PureVoice
                     break;
                 case ConnectionStatusEnum.STATUS_CONNECTION_ESTABLISHED:
                     {
-                        con.Update();
-                        //con.DelayedCall(1000, (c) => c.Init());
+                        con.Init();
+                        con.LocalClient?.SetMetaData("PureVoice", PluginVersion.ToString());
+                        voiceClient.AcceptConnections();
                     }
                     break;
                 default:
@@ -248,6 +356,7 @@ namespace PureVoice
             }
             Log($"Server {serverConnectionHandlerID} {newStatus} {con.GUID}");
         }
+
 
     }
 }

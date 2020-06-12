@@ -49,7 +49,7 @@ namespace PureVoice
             }
             catch (Exception ex)
             {
-                NetDebug.Logger?.WriteNet(ConsoleColor.Black, $"SmartLock {Name} Lock action {ex} : {GetStackTrace(true)}");
+                NetDebug.Logger?.WriteNet(NetLogLevel.Warning, $"SmartLock {Name} Lock action {ex} : {GetStackTrace(true)}");
 
                 return default(TOut);
             }
@@ -69,7 +69,7 @@ namespace PureVoice
             }
             catch (Exception ex)
             {
-                NetDebug.Logger?.WriteNet(ConsoleColor.Black, $"SmartLock {Name} Lock action {ex} : {GetStackTrace(true)}");
+                NetDebug.Logger?.WriteNet(NetLogLevel.Warning, $"SmartLock {Name} Lock action {ex} : {GetStackTrace(true)}");
             }
             finally
             {
@@ -91,9 +91,9 @@ namespace PureVoice
                     if (!locked)
                     {
                         timeoutMS += WARN_TIMEOUT_MS;
-                        NetDebug.Logger?.WriteNet(ConsoleColor.Black, $"{Name} Lock held: {(timeoutMS / 1000)} secs by {HoldingTrace} requested by [{Thread.CurrentThread.ManagedThreadId}] {FormatCode(tag, code, codeLine)}");
-                        NetDebug.Logger?.WriteNet(ConsoleColor.Black, $"HOLDING: {HoldingTraceStack}");
-                        NetDebug.Logger?.WriteNet(ConsoleColor.Black, $"REQUESTING: {GetStackTrace(true)}");
+                        NetDebug.Logger?.WriteNet(NetLogLevel.Warning, $"{Name} Lock held: {(timeoutMS / 1000)} secs by {HoldingTrace} requested by [{Thread.CurrentThread.ManagedThreadId}] {FormatCode(tag, code, codeLine)}");
+                        NetDebug.Logger?.WriteNet(NetLogLevel.Warning, $"HOLDING: {HoldingTraceStack}");
+                        NetDebug.Logger?.WriteNet(NetLogLevel.Warning, $"REQUESTING: {GetStackTrace(true)}");
                     }
                 }
 
@@ -103,7 +103,7 @@ namespace PureVoice
             }
             catch (Exception ex)
             {
-                NetDebug.Logger?.WriteNet(ConsoleColor.Black, $"SmartLock {Name} Enter {ex.Message}");
+                NetDebug.Logger?.WriteNet(NetLogLevel.Warning, $"SmartLock {Name} Enter {ex.Message}");
             }
         }
         private string FormatCode(string tag, string code, int codeLine)
@@ -137,7 +137,7 @@ namespace PureVoice
             }
             catch (Exception ex)
             {
-                NetDebug.Logger?.WriteNet(ConsoleColor.Black, $"SmartLock {Name} Exit {ex}");
+                NetDebug.Logger?.WriteNet(NetLogLevel.Warning, $"SmartLock {Name} Exit {ex}");
             }
         }
     }

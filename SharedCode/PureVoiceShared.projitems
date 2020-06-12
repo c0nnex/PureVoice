@@ -10,9 +10,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Extensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4Sharp\ILZ4Compressor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4Sharp\ILZ4Decompressor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4Sharp\LZ4Compressor64.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4Sharp\LZ4Decompressor64.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)LZ4Sharp\LZ4Util.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\Enums.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\IVoicePaketModel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\TSVector.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Model\VoiceDistortionSetting.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketChannel.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketCommand.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketConfig.cs" />
@@ -23,6 +29,5 @@
     <Compile Include="$(MSBuildThisFileDirectory)Model\VoicePaketUpdate.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)SmartLock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)VoicePaketProcessor.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)VoicePaketSerializer.cs" />
   </ItemGroup>
 </Project>

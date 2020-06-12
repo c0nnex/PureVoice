@@ -6,19 +6,20 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>TRACE;RELEASE;NETCOREAPP2_0;NETCORE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>DEBUG;TRACE;NETCOREAPP2_0;NETCORE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;NETCOREAPP2_0;NETCORE;NETSTANDARD2_0</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\PureVoiceServer\VoiceLocationInformation.cs" Link="VoiceLocationInformation.cs" />
-    <Compile Include="..\PureVoiceServer\VoiceServer.cs" Link="VoiceServer.cs" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.7.1" />
   </ItemGroup>
 
-  <Import Project="..\LiteNetLib\LiteNetLib.projitems" Label="Shared" />
-
   <Import Project="..\SharedCode\PureVoiceShared.projitems" Label="Shared" />
+
+  <Import Project="..\Modules\LiteNetLib\LiteNetLib.projitems" Label="Shared" />
 
 </Project>

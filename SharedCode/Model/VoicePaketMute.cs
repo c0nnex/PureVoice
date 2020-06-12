@@ -4,16 +4,16 @@ using System.Text;
 
 namespace PureVoice.VoiceClient.Model
 {
-    class VoicePaketMute : IVoicePaketModel
+    class VoicePaketMute 
     {
-        public string Name { get; set; }
+        public ushort ClientID { get; set; }
         public bool IsMute { get; set; }
 
         public VoicePaketMute() { }
-        public VoicePaketMute(bool isMute) { IsMute = isMute; }
+        public VoicePaketMute(ushort clientID,bool isMute) { ClientID = clientID; IsMute = isMute; }
     }
 
-    class VoicePaketBatchMute : IVoicePaketModel
+    class VoicePaketBatchMute 
     {
         public List<ushort> Mutelist = new List<ushort>();
         public ushort[] Data
